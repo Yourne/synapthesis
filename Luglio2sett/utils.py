@@ -26,3 +26,20 @@ def compute_revenue_year(df, supplier, date_col):
     rev_by_year = rev_by_year.unstack()
     return rev_by_year
 
+def extract_med_rev_by_year(df, agent):
+    rev_by_year = df.groupby([agent, df.data_inizio.map(lambda x: x.year)]).sum().importo
+    rev_by_year = rev_by_year.unstack()
+    med_yearly_rev = rev_by_year.median(axis=1)
+    if agent == "id_pa":
+        med_yearly_rev = med_yearly_rev.rename("erogato_med_pa")
+    else:
+        med_yearly_rev = med_yearly_rev.rename("fatt_med_be")
+    return df.merge(med_yearly_rev, on=agent, how="left")
+
+
+def extract_med_contract(df, agent):
+    contr_med_agent = df.groupby(agent).median().importo
+    contr_med_agent = contr_med_agent.rename("contr_med_" + agent)
+    return df.merge(contr_med_agent, on=agent, how="left")
+
+
