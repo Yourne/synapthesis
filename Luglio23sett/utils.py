@@ -27,7 +27,7 @@ def compute_revenue_year(df, supplier, date_col):
     return rev_by_year
 
 def extract_med_rev_by_year(df, agent):
-    rev_by_year = df.groupby([agent, df.data_inizio.map(lambda x: x.year)]).sum().importo
+    rev_by_year = df.groupby([agent, df.data_inizio.dt.year]).sum().importo
     rev_by_year = rev_by_year.unstack()
     med_yearly_rev = rev_by_year.median(axis=1)
     if agent == "id_pa":
@@ -38,8 +38,24 @@ def extract_med_rev_by_year(df, agent):
 
 
 def extract_med_contract(df, agent):
+    # dovrebbe essere per anno?
     contr_med_agent = df.groupby(agent).median().importo
-    contr_med_agent = contr_med_agent.rename("contr_med_" + agent)
+    contr_med_agent = contr_med_agent.rename("contr_med_" + agent.strip("id_"))
     return df.merge(contr_med_agent, on=agent, how="left")
 
-
+def extract_med_n_contr_by_year(df, agent):
+    contr_by_year = df.groupby([agent, df.data_inizio.map(lambda x: x.year)]).size()
+    contr_by_year = contr_by_year.unstack()
+    med_yearly_n_contr = contr_by_year.median(axis=1)
+    med_yearly_n_contr = med_yearly_n_contr.rename("med_yearly_n_contr_" + agent.strip("id_"))
+    return df.merge(med_yearly_n_contr, on=agent, how="left")
+                              
+def encode_sin_cos(df, period="year"):
+    if period == "month":
+        x = df.data_inizio.dt.month
+        period = 12
+    x = df.data_inizio.dt.day_of_year
+    period_days = 365
+    df[period + "_sin"] = np.sin(x / period_days * 2 * np.pi)
+    df[period + "_cos"] = np.cos(x / period_days * 2 * np.pi)
+    return df 
