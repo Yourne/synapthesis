@@ -1,5 +1,11 @@
 import numpy as np
 
+data_directory = "/Users/nepal/Documents/synapthesis/synData6July"
+lotti_fn = "export_lotti_veneto_2016_2018_giulio_v2.csv"
+vincitori_fn = "export_vincitori_veneto_2016_2018_giulio_v2.csv"
+procedura_fn = "/Users/nepal/Documents/synapthesis/tipi_procedure.txt"
+
+
 def print_df_measures(df):
     print(f"SHAPE: {df.shape}")
     print()
@@ -31,9 +37,9 @@ def extract_med_rev_by_year(df, agent):
     rev_by_year = rev_by_year.unstack()
     med_yearly_rev = rev_by_year.median(axis=1)
     if agent == "id_pa":
-        med_yearly_rev = med_yearly_rev.rename("erogato_med_pa")
+        med_yearly_rev = med_yearly_rev.rename("median_expenditure_pa")
     else:
-        med_yearly_rev = med_yearly_rev.rename("fatt_med_be")
+        med_yearly_rev = med_yearly_rev.rename("median_revenue_be")
     return df.merge(med_yearly_rev, on=agent, how="left")
 
 
@@ -59,3 +65,22 @@ def encode_sin_cos(df, period="year"):
     df[period + "_sin"] = np.sin(x / period_days * 2 * np.pi)
     df[period + "_cos"] = np.cos(x / period_days * 2 * np.pi)
     return df 
+
+def plot_abc_items(df, category, ax, percentage):
+    aggregate = df.groupby(category).importo.sum().sort_values(ascending=False)
+    values = (aggregate / aggregate.sum()).values
+    labels = aggregate.index
+    idx = list(range(len(values)))
+    ax.axhline(percentage, c="red", ls="dotted", alpha=.7)
+    ax.text(x=idx[-10], y=(percentage -.05), s=f"{percentage} sum amount")
+    ax.bar(idx, values)
+    ax.plot(np.cumsum(values))
+    ax.set_xticks(idx, labels)
+    ax.set_xlabel(category)
+    ax.set_ylabel("revenue percentage")
+    count_aggregate = df.groupby(category).size()
+    items = labels[np.cumsum(values)<=percentage].values
+    print(f"category within {percentage} - ROW COUNT")
+    print(count_aggregate.loc[items])
+    return items
+
