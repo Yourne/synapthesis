@@ -8,6 +8,24 @@ lotti_fn = "export_lotti_veneto_2016_2018_giulio_v2.csv"
 vincitori_fn = "export_vincitori_veneto_2016_2018_giulio_v2.csv"
 procedura_fn = "/Users/nepal/Documents/synapthesis/tipi_procedure.txt"
 
+abc_procedure_names = {
+    1 : "procedura aperta",
+    26 : "adesione",
+    4 : "procedura ristretta",
+    23 : "affidamento diretto"
+}
+
+abc_cpv_names = {
+    33 : "Apparecchiature mediche",
+    45 : "Lavori di costruzione",
+    85 : "Servizi sanitari",
+    79 : "Servizi per le imprese"
+}
+
+color_procedure = dict()
+for id_scelta_contraente, color in zip(abc_procedure_names.keys(), mcolors.TABLEAU_COLORS):
+    color_procedure[id_scelta_contraente] = color
+
 
 def print_df_measures(df):
     print(f"SHAPE: {df.shape}")
@@ -19,21 +37,12 @@ def print_df_measures(df):
     print(np.sum(df.notna(), axis=0) / df.shape[0] * 100)
     
 def replace_missing_value(df, col, replacement_col):
-    print(f"{col} values to substitute: \
+    print(f"{col} values to substitute with {replacement_col} values percentage: \
           {sum(df[replacement_col][df[col].isna()].notna()) / df.shape[0] :.4f}%")
+    
     mask = df[replacement_col].notna() & df[col].isna()
     df.loc[df[mask].index, col] = df[replacement_col][mask]
     return df
-
-def compute_revenue_year(df, supplier, date_col):
-    """ 
-    supplier: column name of the supplier (or buyer) in dataframe df
-    date_col: column name of the date of the contract
-    return: the total revenue for each year for each supplier (or buyer)
-    """
-    rev_by_year = df.groupby([supplier, df[date_col].map(lambda x: x.year)]).sum()["importo"]
-    rev_by_year = rev_by_year.unstack()
-    return rev_by_year
 
 def extract_med_rev_by_year(df, agent):
     rev_by_year = df.groupby([agent, df.data_inizio.dt.year]).sum().importo
@@ -87,26 +96,8 @@ def plot_abc_items(df, category, ax, percentage):
     print(f"category within {percentage} - ROW COUNT")
     print(count_aggregate.loc[items])
     return items
-        
-abc_procedure_names = {
-    1 : "procedura aperta",
-    26 : "adesione",
-    4 : "procedura ristretta",
-    23 : "affidamento diretto"
-}
-
-abc_cpv_names = {
-    33 : "Apparecchiature mediche",
-    45 : "Lavori di costruzione",
-    85 : "Servizi sanitari",
-    79 : "Servizi per le imprese"
-}
-
-color_procedure = dict()
-for id_scelta_contraente, color in zip(abc_procedure_names.keys(), mcolors.TABLEAU_COLORS):
-    color_procedure[id_scelta_contraente] = color
     
-def scatter_quaternion(xcol, ycol, df, cpv, xbound=(1, 8), ybound=(1, 8), max_years=5):
+def scatter_quaternion(xcol, ycol, df, cpv, max_years=5):
     """x, y : df column labels"""
     fig, ax = plt.subplots(2, 2, figsize=(6*2.5, 4*3), sharex=True, sharey=True)
     fig.suptitle(f"{cpv} - {abc_cpv_names[cpv]}")
@@ -118,21 +109,17 @@ def scatter_quaternion(xcol, ycol, df, cpv, xbound=(1, 8), ybound=(1, 8), max_ye
         if xcol == "durata":
             table = table[table.durata.dt.days < 365 * max_years]
             x = table.durata.dt.days
+            years = np.arange(0, max_years, 1)
+            axx.set_xticks(years * 365, [str(el) for el in years])
+            axx.set_xlabel("years")
             for i in range(max_years):
                 axx.axvline(i*365, ls="dotted", c="black", alpha=.3)
-                years = np.arange(0, max_years, 1)
-                axx.set_xticks(years * 365, [str(el) for el in years])
-                axx.set_xlabel("years")
         else:
             x = table[xcol]
             axx.set_xscale("log")
-            # axx.set_xticks([10** tick for tick in np.arange(xbound[0], xbound[1], 1)])
-            # axx.set_xbound(10**xbound[0],10**xbound[1])
             axx.set_xlabel(xcol)
         
         axx.set_yscale("log")
-        # axx.set_yticks([10** tick for tick in np.arange(ybound[0], ybound[1], 1)])
-        # axx.set_ybound(10**ybound[0],10**ybound[1])
         axx.set_ylabel(ycol)
         
         axx.scatter(x=x, y=table[ycol], s=10, alpha=.3, 
@@ -142,3 +129,29 @@ def scatter_quaternion(xcol, ycol, df, cpv, xbound=(1, 8), ybound=(1, 8), max_ye
         axx.legend()
         
     plt.tight_layout()
+    
+def setup_axes(xcol, ycol, table, axx, max_years=10):
+    if xcol == "durata":
+        table = table[table.durata.dt.days < 365 * max_years]
+        x = table.durata.dt.days
+        years = np.arange(0, max_years, 1)
+        axx.set_xticks(years * 365, [str(el) for el in years])
+        axx.set_xlabel("years")
+        for i in range(max_years):
+                axx.axvline(i*365, ls="dotted", c="black", alpha=.3)
+    else:
+        x = table[xcol]
+        axx.set_xscale("log")
+        axx.set_xlabel(xcol)
+    y = table[ycol]
+    axx.set_yscale("log")
+    axx.set_ylabel(ycol)
+        
+    return x, y, axx
+
+def compare_filtering(df, xcol, ycol, outlier_category, mask=None, max_years=10, alpha=.3):
+    fig, ax = plt.subplots(figsize=(6*3, 4*3))
+    x, y, ax = setup_axes(xcol, ycol, df, ax, max_years)
+    scatter = ax.scatter(x, y, s=10, alpha=alpha, c=df[outlier_category])
+    legend = ax.legend(*scatter.legend_elements())
+    ax.add_artist(legend)

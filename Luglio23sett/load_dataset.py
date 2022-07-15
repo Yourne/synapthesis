@@ -6,7 +6,7 @@ import utils
 def load_dataset(data_directory, lotti_fn, vincitori_fn, procedura_fn):    
     lotti = pd.read_csv(path.join(data_directory, lotti_fn), index_col="id_lotto")
     vincitori = pd.read_csv(path.join(data_directory, vincitori_fn), index_col="id_lotto")
-    tipi_procedura = pd.read_csv(procedura_fn, index_col="id_scelta_contraente")
+    tipi_procedura = pd.read_csv(path.join(data_directory, procedura_fn), index_col="id_scelta_contraente")
     
     # convert datatypes
     lotti.data_inizio = pd.to_datetime(lotti.data_inizio, yearfirst=True)
@@ -19,10 +19,13 @@ def load_dataset(data_directory, lotti_fn, vincitori_fn, procedura_fn):
     
     # drop table attributes with mostly missing values
     lotti = lotti.drop(columns=["oggetto", "importo_liquidato", "importo_base_asta", "data_inferita", "id_mod_realizz", "cpv_vero"])
+    print("columns dropped with mostly missing values:")
+    print(str(["oggetto", "importo_liquidato", "importo_base_asta", "data_inferita", "id_mod_realizz", "cpv_vero"]))
     
     # clean the dfs from the remaining missing values
     lotti = lotti.dropna()
     vincitori = vincitori.dropna()
+    print("dropped all the rows with at least one missing value")
     
     # cast to int64 cols now w/out np.nan
     lotti.id_scelta_contraente = lotti.id_scelta_contraente.astype('int')
@@ -54,6 +57,7 @@ def feature_extraction(df):
     # median number of contracts by year
     df = utils.extract_med_n_contr_by_year(df, "id_pa")
     df = utils.extract_med_n_contr_by_year(df, "id_be")
+    
     
     return df
 
