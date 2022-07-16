@@ -11,7 +11,7 @@ procedura_fn = "/Users/nepal/Documents/synapthesis/tipi_procedure.txt"
 abc_procedure_names = {
     1 : "procedura aperta",
     26 : "adesione",
-    4 : "procedura ristretta",
+    4 : "procedura negoziata",
     23 : "affidamento diretto"
 }
 
