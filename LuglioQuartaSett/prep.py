@@ -179,7 +179,7 @@ def save_csv_file(df):
     df = df.drop(columns=[
         "id_pa", "id_lsf", "id_be", "med_yearly_n_contr_pa",
         "med_yearly_n_contr_be"])
-    df = df.rename(columns={"importo": "value"})
+    df = df.rename(columns={"importo": "sum_total"})
     for cpv, cpv_name in abc_cpv_short_names.items():
         for procedure, procedure_name in abc_procedure_short_names.items():
             mask = (df.cpv == cpv) & (df.id_scelta_contraente == procedure)
