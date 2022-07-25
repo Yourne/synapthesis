@@ -119,11 +119,13 @@ def scatter_quaternion(xcol, ycol, df, cpv, max_years=5):
         if xcol == "durata":
             table = table[table.durata.dt.days < 365 * max_years]
             x = table.durata.dt.days
-            years = np.arange(0, max_years, 1)
-            axx.set_xticks(years * 365, [str(el) for el in years])
-            axx.set_xlabel("years")
-            for i in range(max_years):
-                axx.axvline(i*365, ls="dotted", c="black", alpha=.3)
+            # years = np.arange(0, max_years, 1)
+            # axx.set_xticks(years * 365, [str(el) for el in years])
+            
+            # for i in range(max_years):
+            #     axx.axvline(i*365, ls="dotted", c="black", alpha=.3)
+            axx.set_xscale("log")
+            axx.set_xlabel("days")
         else:
             x = table[xcol]
             axx.set_xscale("log")
