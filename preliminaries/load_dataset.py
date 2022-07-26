@@ -1,4 +1,5 @@
 from os import path
+import numpy as np
 import pandas as pd
 import utils
 
@@ -58,7 +59,10 @@ def feature_extraction(df):
     df = utils.extract_med_contract(df, "id_be")
 
     # contract duration
-    df['durata'] = df.data_fine - df.data_inizio
+    durata = df.data_fine - df.data_inizio
+    df['durata'] = durata
+    df["durata_month"] = (durata / np.timedelta64(1, "M"))
+    df["durata_year"] = (durata / np.timedelta64(1, "Y"))
 
     # continuous encoding of the day_of_year as (sin, cos) couple
     df = utils.encode_sin_cos(df, "day_of_year")

@@ -123,7 +123,7 @@ def feature_extraction(df):
     # see the nvidia developer guide for encoding time related variables for
     # rough introduction to the use radial basis function
 
-    # convert data_inizio to days since base_date
+    # replace data_inizio to days since base_date to avoid datetime format
     base_date = df.data_inizio.min()
     df["daysSinceBaseDate"] = (df.data_inizio - base_date).dt.days
     df = df.drop(columns=["data_inizio"])
