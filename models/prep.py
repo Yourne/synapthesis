@@ -185,7 +185,7 @@ def save_csv_file(df):
             mask = (df.cpv == cpv) & (df.id_scelta_contraente == procedure)
             data = df[mask].copy()
             data = data.drop(columns=["cpv", "id_scelta_contraente"])
-            file_name = cpv_name + "_" + procedure_name
+            file_name = cpv_name + "_" + procedure_name + ".csv"
             data.to_csv(path.join(output_directory, file_name))
 
 

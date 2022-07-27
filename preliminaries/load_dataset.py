@@ -10,8 +10,8 @@ def load_dataset(data_directory, lotti_fn, vincitori_fn, procedura_fn):
     vincitori = pd.read_csv(
         path.join(data_directory, vincitori_fn), index_col="id_lotto")
     tipi_procedura = pd.read_csv(
-        path.join(
-            data_directory, procedura_fn), index_col="id_scelta_contraente")
+        path.join(data_directory, procedura_fn),
+        index_col="id_scelta_contraente")
 
     # convert datatypes
     lotti.data_inizio = pd.to_datetime(lotti.data_inizio, yearfirst=True)

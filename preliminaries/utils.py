@@ -121,7 +121,6 @@ def scatter_quaternion(xcol, ycol, df, cpv, max_years=5):
             x = table.durata.dt.days
             # years = np.arange(0, max_years, 1)
             # axx.set_xticks(years * 365, [str(el) for el in years])
-            
             # for i in range(max_years):
             #     axx.axvline(i*365, ls="dotted", c="black", alpha=.3)
             axx.set_xscale("log")
