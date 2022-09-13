@@ -15,11 +15,8 @@ def replace_missing_value(df, col, replacement_col):
 
 
 def load_dataset():
-    # load dataset
-    lotti = pd.read_csv(
-        path.join(import_directory, lotti_fn), index_col="id_lotto")
-    vincitori = pd.read_csv(
-        path.join(import_directory, vincitori_fn), index_col="id_lotto")
+    lotti = pd.read_csv(path.join(import_directory, lotti_fn))
+    vincitori = pd.read_csv(path.join(import_directory, vincitori_fn))
 
     # convert datatypes
     lotti.data_inizio = pd.to_datetime(lotti.data_inizio, yearfirst=True)
@@ -55,36 +52,55 @@ def load_dataset():
         columns=["id_forma_giuridica", "uber_forma_giuridica"])
 
     # merge the datasets
-    return lotti.merge(
-        vincitori, on="id_lotto", how="inner", suffixes=("_pa", "_be"))
+    return lotti.merge(vincitori, on="id_lotto")
 
 
-def extract_med_rev_by_year(df, agent):
+def split_sum_totals(df):
+    # remove duplicates
+    df = df[~df.duplicated()]
+    # save records having more than one winner in a temporary variable
+    temp = df[df["id_lotto"].duplicated(keep=False)]
+    # equally split the lot sum among all the winners
+    # (uniform distr. is uninformative prior)
+    temp = temp.join(temp.groupby("id_lotto").size().rename("n_winners"),
+                     on="id_lotto")
+    temp = temp["importo"] / temp["n_winners"]
+    # modifico la copia o l'originale?
+    # secondo la teoria l'originale
+    df.iloc[temp.index, 3] = temp.values
+    return df
+
+
+def extract_median_yearly_revenue(df, agent):
     rev_by_year = df.groupby([agent, df.data_inizio.dt.year]).sum().importo
     rev_by_year = rev_by_year.unstack()
     med_yearly_rev = rev_by_year.median(axis=1)
     if agent == "id_pa":
-        med_yearly_rev = med_yearly_rev.rename("median_annual_expenditure")
+        med_yearly_rev = med_yearly_rev.rename("pa_med_ann_expenditure")
     else:
-        med_yearly_rev = med_yearly_rev.rename("median_annual_revenue")
+        med_yearly_rev = med_yearly_rev.rename("be_med_ann_revenue")
     return df.join(med_yearly_rev, on=agent)
 
 
-def extract_med_contract(df, agent):
-    # dovrebbe essere per anno?
-    contr_med_agent = df.groupby(agent).median().importo
-    contr_med_agent = contr_med_agent.rename(
-        "median_contract_" + agent.strip("id_"))
-    return df.join(contr_med_agent, on=agent)
+def extract_median_contract(df, agent):
+    # the median of the median of each year. why? for consistency with the
+    # other extracted features
+    med_year_contr = df.groupby([
+        agent, df.data_inizio.dt.year]).median().importo
+    med_year_contr = med_year_contr.unstack()
+    med_year_contr = med_year_contr.median(axis=1)
+    med_year_contr = med_year_contr.rename(
+        agent.strip("id_") + "_med_ann_contr")
+    return df.join(med_year_contr, on=agent)
 
 
-def extract_med_n_contr_by_year(df, agent):
+def extract_median_yearly_n_contracts(df, agent):
     contr_by_year = df.groupby(
         [agent, df.data_inizio.map(lambda x: x.year)]).size()
     contr_by_year = contr_by_year.unstack()
     med_yearly_n_contr = contr_by_year.median(axis=1)
     med_yearly_n_contr = med_yearly_n_contr.rename(
-        "med_yearly_n_contr_" + agent.strip("id_"))
+        agent.strip("id_") + "_med_ann_n_contr")
     return df.join(med_yearly_n_contr, on=agent)
 
 
@@ -101,17 +117,17 @@ def encode_sin_cos(df, period="DayOfYear"):
 
 def feature_extraction(df):
     # median public expendire by stazione appaltante and year
-    df = extract_med_rev_by_year(df, "id_pa")
+    df = extract_median_yearly_revenue(df, "id_pa")
     # median revenue by business entity and year
-    df = extract_med_rev_by_year(df, "id_be")
+    df = extract_median_yearly_revenue(df, "id_be")
 
     # median rev/expenditure contract by year
-    df = extract_med_contract(df, "id_pa")
-    df = extract_med_contract(df, "id_be")
+    df = extract_median_contract(df, "id_pa")
+    df = extract_median_contract(df, "id_be")
 
     # median number of contracts by year
-    df = extract_med_n_contr_by_year(df, "id_pa")
-    df = extract_med_n_contr_by_year(df, "id_be")
+    df = extract_median_yearly_n_contracts(df, "id_pa")
+    df = extract_median_yearly_n_contracts(df, "id_be")
 
     # contract duration
     df['duration'] = (df.data_fine - df.data_inizio).dt.days
@@ -137,12 +153,14 @@ def remove_obvious_outliers(df):
     # public commissioning body (stazione appaltante). Both the business entity
     # and the commissioning body must have a median annual number of contracts
     # higher or equal than five.
-    min_year_contr_th = 5
-    rev_exp_mask = (df.importo > df.median_annual_expenditure) & \
-        (df.importo > df.median_annual_revenue)
-    min_year_contr_mask = (df.med_yearly_n_contr_be > min_year_contr_th) & \
-        (df.med_yearly_n_contr_pa > min_year_contr_th)
-    df = df[~(rev_exp_mask & min_year_contr_mask)]
+
+    # NON PARE FUNZIONI
+    min_yearly_n_contr = 5
+    revenue_mask = (df.importo > df.pa_med_ann_expenditure) & \
+        (df.importo > df.be_med_ann_revenue)
+    min_year_contr_mask = (df.be_med_ann_n_contr > min_yearly_n_contr) & \
+        (df.pa_med_ann_n_contr > min_yearly_n_contr)
+    df = df[(~revenue_mask & min_year_contr_mask)]
 
     # 2. affidamenti diretti having contract duration lasting longer than 10
     # years
@@ -154,8 +172,8 @@ def remove_obvious_outliers(df):
     # 3. contracts having a value 25 times higher than the median revenue of
     # business entity and more than 5 contracts (median)
     coef = 25
-    coef_mask = (df.importo > coef * df.median_annual_revenue) & \
-        (df.med_yearly_n_contr_be > 5)
+    coef_mask = (df.importo > coef * df.be_med_ann_revenue) & \
+        (df.be_med_ann_n_contr > 5)
     df = df[~coef_mask]
     return df
 
@@ -175,11 +193,7 @@ abc_cpv_short_names = {
 }
 
 
-def save_csv_file(df):
-    df = df.drop(columns=[
-        "id_pa", "id_lsf", "id_be", "med_yearly_n_contr_pa",
-        "med_yearly_n_contr_be"])
-    df = df.rename(columns={"importo": "sum_total"})
+def save_abc_only(df):
     for cpv, cpv_name in abc_cpv_short_names.items():
         for procedure, procedure_name in abc_procedure_short_names.items():
             mask = (df.cpv == cpv) & (df.id_scelta_contraente == procedure)
@@ -191,6 +205,11 @@ def save_csv_file(df):
 
 if __name__ == "__main__":
     df = load_dataset()
+    df = split_sum_totals(df)
     df = feature_extraction(df)
     df = remove_obvious_outliers(df)
-    save_csv_file(df)
+    df = df.drop(columns=[
+        "id_pa", "id_lsf", "id_be", "pa_med_ann_n_contr",
+        "be_med_ann_n_contr"])
+    df = df.rename(columns={"importo": "sum_total"})
+    save_abc_only(df)
