@@ -8,10 +8,10 @@ from utils import plot, output_flagged_contracts
 
 if __name__ == "__main__":
     directory = "datasets"
-    file_name = "appMed_aperta"
+    dataset = "appMed_aperta"
     model = "oc_svm"
     X = pd.read_csv(
-        path.join(directory, file_name + ".csv"), index_col="id_lotto")
+        path.join(directory, dataset + ".csv"), index_col="id_lotto")
 
     # remove time related features
     X = X.drop(columns=["sinDayOfYear", "cosDayOfYear", "daysSinceBaseDate"])
@@ -32,7 +32,8 @@ if __name__ == "__main__":
     clf = OneClassSVM(nu=.001, verbose=1)
     preds = clf.fit_predict(table)
     print(f"total flagged outliers: {sum(preds == -1)}")
-    plot(X, preds, model, file_name)
+    plot(X, preds, model, dataset)
     # append anomaly score to df
     s = clf.score_samples(table)
-    output_flagged_contracts(X, preds, model, file_name)
+    output_flagged_contracts(X, preds, model, dataset)
+

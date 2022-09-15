@@ -25,7 +25,7 @@ def output_flagged_contracts(X, preds, model, ds_name):
 
 def plot(X, preds, model, ds_name, show=False):
     fig, ax = plt.subplots(1, 3, figsize=(6.4*3, 4.2), sharey=True)
-    fig.suptitle(ds_name)
+    fig.suptitle(model + " " + ds_name)
     for i, feature in enumerate(["median_annual_revenue",
                                 "median_annual_expenditure", "duration"]):
         s = ax[i].scatter(x=X[feature], y=X.sum_total, c=preds, alpha=1, s=.2)
@@ -34,9 +34,11 @@ def plot(X, preds, model, ds_name, show=False):
         ax[i].set_xlabel(feature)
         ax[i].set_xscale("log")
         ax[i].set_yscale("log")
-
     plt.tight_layout()
+
+    # save figure
     fname = path.join("output", model)
     plt.savefig(fname + "-" + ds_name + ".png")
+
     if show:
         plt.show()

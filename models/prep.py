@@ -66,7 +66,7 @@ def split_sum_totals(df):
                      on="id_lotto")
     temp = temp["importo"] / temp["n_winners"]
     # modifico la copia o l'originale?
-    # secondo la teoria l'originale
+    # l'originale secondo quello che so
     df.iloc[temp.index, 3] = temp.values
     return df
 
@@ -200,7 +200,8 @@ def save_abc_only(df):
             data = df[mask].copy()
             data = data.drop(columns=["cpv", "id_scelta_contraente"])
             file_name = cpv_name + "_" + procedure_name + ".csv"
-            data.to_csv(path.join(output_directory, file_name))
+            data.to_csv(path.join(output_directory, file_name),
+                        index_label="idx")
 
 
 if __name__ == "__main__":
@@ -208,8 +209,8 @@ if __name__ == "__main__":
     df = split_sum_totals(df)
     df = feature_extraction(df)
     df = remove_obvious_outliers(df)
-    df = df.drop(columns=[
-        "id_pa", "id_lsf", "id_be", "pa_med_ann_n_contr",
-        "be_med_ann_n_contr"])
+    # df = df.drop(columns=[
+    #     "id_pa", "id_lsf", "id_be", "pa_med_ann_n_contr",
+    #     "be_med_ann_n_contr"])
     df = df.rename(columns={"importo": "sum_total"})
     save_abc_only(df)
