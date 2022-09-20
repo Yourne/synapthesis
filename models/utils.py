@@ -23,11 +23,10 @@ def output_flagged_contracts(X, preds, model, ds_name):
     outliers.to_csv(output_path)
 
 
-def plot(X, preds, model, ds_name, show=False):
+def plot(X, preds, model, ds_name, features, show=False):
     fig, ax = plt.subplots(1, 3, figsize=(6.4*3, 4.2), sharey=True)
     fig.suptitle(model + " " + ds_name)
-    for i, feature in enumerate(["median_annual_revenue",
-                                "median_annual_expenditure", "duration"]):
+    for i, feature in enumerate(features):
         s = ax[i].scatter(x=X[feature], y=X.sum_total, c=preds, alpha=1, s=.2)
         ax[i].legend(*s.legend_elements())
         ax[i].set_ylabel("contract sum-total")

@@ -22,8 +22,6 @@ if __name__ == "__main__":
     X = X.drop(columns=['pa_med_ann_contr', 'be_med_ann_contr',
                         'pa_med_ann_n_contr', 'be_med_ann_n_contr'])
 
-    print(X.columns)
-
     # preprocessing
     col_names = X.columns
     X.duration = X.duration.replace(0, X.duration.median())
@@ -51,7 +49,12 @@ if __name__ == "__main__":
     kde.fit(X)
 
     # likelihoods
-    scores = kde.score_samples(X)
+    dataset["scores"] = kde.score_samples(X)
+
+    # save file
+    fname = path.join("output", model + "-" + dataset_name + ".csv")
+    dataset["scores"].sort_values().to_csv(fname)
 
     # plot and save results
-    # utils.plot(X, scores, model, dataset_name)
+    # features = ['pa_med_ann_expenditure', 'be_med_ann_revenue', 'duration']
+    # utils.plot(dataset, scores, model, dataset_name, features)

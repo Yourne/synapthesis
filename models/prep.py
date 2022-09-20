@@ -14,7 +14,7 @@ def replace_missing_value(df, col, replacement_col):
     return df
 
 
-def load_dataset():
+def load_dataset(import_directory, lotti_fn, vincitori_fn):
     lotti = pd.read_csv(path.join(import_directory, lotti_fn))
     vincitori = pd.read_csv(path.join(import_directory, vincitori_fn))
 
@@ -205,12 +205,12 @@ def save_abc_only(df):
 
 
 if __name__ == "__main__":
-    df = load_dataset()
+    df = load_dataset(import_directory, lotti_fn, vincitori_fn)
     df = split_sum_totals(df)
     df = feature_extraction(df)
     df = remove_obvious_outliers(df)
     # df = df.drop(columns=[
     #     "id_pa", "id_lsf", "id_be", "pa_med_ann_n_contr",
     #     "be_med_ann_n_contr"])
-    df = df.rename(columns={"importo": "sum_total"})
+    df = df.rename(columns={"importo": "amount"})
     save_abc_only(df)
