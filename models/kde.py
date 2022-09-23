@@ -1,60 +1,78 @@
 from sklearn.neighbors import KernelDensity
-# from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import RobustScaler
 from scipy.stats import boxcox
 import pandas as pd
-from os import path
+import numpy as np
+import os
+import time
 
 if __name__ == "__main__":
-    directory = "datasets"
-    dataset_name = "appMed_aperta"
-    model = "kde"
-    dataset = pd.read_csv(
-        path.join(directory, dataset_name + ".csv"), index_col="idx")
+    DATADIR = "datasets"
+    MODEL = "kde"
+    OUTDIR = "output"
+    for fname in os.listdir(DATADIR):
+        cpv, award_procedure = fname[:-4].split("_")
+        dataset = pd.read_csv(os.path.join(DATADIR, fname), index_col="idx")
 
-    # remove id_be, id_pa, id_lsf
-    X = dataset.drop(columns=["id_lotto", "id_pa", "id_be", "id_lsf"])
-    # remove time related features
-    X = X.drop(columns=["sinDayOfYear", "cosDayOfYear", "daysSinceBaseDate"])
-    # remove median contract pa, median contract be, "pa_med_ann_n_contr",
-    # "be_med_ann_n_contr" as they are computed on whole dataset, not only the
-    # CPV and award procedure
-    X = X.drop(columns=['pa_med_ann_contr', 'be_med_ann_contr',
-                        'pa_med_ann_n_contr', 'be_med_ann_n_contr'])
+        # remove oggetto, id_be, id_pa, id_lsf, data_inizio, data_fine
+        X = dataset.drop(columns=[
+            "oggetto", "id_lotto", "id_pa", "id_be", "id_lsf", "data_inizio",
+            "data_fine"])
+        # remove time related features
+        X = X.drop(columns=["daysSinceBaseDate"])
+        # remove median contract pa, median contract be, "pa_med_ann_n_contr",
+        # "be_med_ann_n_contr" as they are computed on whole dataset, not only
+        # the CPV and award procedure
+        X = X.drop(columns=['pa_med_ann_contr', 'be_med_ann_contr',
+                            'pa_med_ann_n_contr', 'be_med_ann_n_contr'])
 
-    # preprocessing
-    col_names = X.columns
-    X.duration = X.duration.replace(0, X.duration.median())
-    scaler = RobustScaler(with_centering=False)
-    X = scaler.fit_transform(X)
-    # scale only the real-valued columns
-    for i in range(0, 2):
-        X[:, i], _ = boxcox(X[:, i])
+        # preprocessing
+        X.duration = X.duration.replace(0, X.duration.median())
+        scaler = RobustScaler(with_centering=False)
+        X = scaler.fit_transform(X)
+        # scale only the real-valued columns
+        for i in range(0, 2):
+            X[:, i], _ = boxcox(X[:, i])
 
-    # # optimize the bandwidth
-    # params = {"bandwidth": np.logspace(-1, 1, 20)}
-    # print(params)
-    # grid = GridSearchCV(KernelDensity(), params, verbose=1)
-    # grid.fit(X)
+        # optimize the bandwidth
+        params = {"bandwidth": np.logspace(-2, 1, 4)}
 
-    # print("best bandwidth: {0}".format(grid.best_estimator_.bandwidth))
-    # # best bandwith: 0.6951927961775606
+        grid = GridSearchCV(KernelDensity(), params, verbose=1, cv=3)
+        start = time.time()
+        grid.fit(X)
+        elapsed = time.time() - start
 
-    # # use the best estimator to compute the kernel density estimate
-    # kde = grid.best_estimator_
+        print(f"dataset {fname[:-4]}")
+        print(f"bandwith hyperparameter search required {elapsed:.2f} s")
+        print("best bandwidth: {0}".format(grid.best_estimator_.bandwidth))
 
-    # already optimized bandwidth
-    bandwidth = 0.26366508987303583
-    kde = KernelDensity(bandwidth=1, kernel="gaussian")
-    kde.fit(X)
+        # use the best estimator to compute the kernel density estimate
+        kde = grid.best_estimator_
 
-    # likelihoods
-    dataset["scores"] = kde.score_samples(X)
+        # likelihoods
+        dataset["score"] = kde.score_samples(X)
+        dataset = dataset.sort_values(by="score")
 
-    # save file
-    fname = path.join("output", model + "-" + dataset_name + ".csv")
-    dataset["scores"].sort_values().to_csv(fname)
+        # record the output
+        dataset = dataset.drop(columns=[
+            "data_fine", "id_lsf", "pa_med_ann_expenditure",
+            "be_med_ann_revenue", "pa_med_ann_contr", "be_med_ann_contr",
+            "pa_med_ann_n_contr", "be_med_ann_n_contr", "duration", "sinMonth",
+            "cosMonth", "daysSinceBaseDate"
+        ])
 
-    # plot and save results
-    # features = ['pa_med_ann_expenditure', 'be_med_ann_revenue', 'duration']
-    # utils.plot(dataset, scores, model, dataset_name, features)
+        outpath = os.path.join(OUTDIR, award_procedure, "score")
+        try:
+            os.makedirs(outpath)
+        except FileExistsError:
+            pass
+
+        fname = MODEL + "_" + award_procedure + "_" + cpv + "_score.csv"
+        fname = os.path.join(outpath, fname)
+
+        # save the files for Davide
+        # dataset.iloc[:100].to_csv(fname)
+
+        # save files for the outliers analyzer.py
+        dataset["score"].to_csv(fname)

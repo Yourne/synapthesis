@@ -29,7 +29,7 @@ def load_dataset(import_directory, lotti_fn, vincitori_fn):
 
     # drop table attributes with mostly missing values
     missingValuesCols = [
-        "oggetto", "importo_liquidato", "importo_base_asta", "data_inferita",
+        "importo_liquidato", "importo_base_asta", "data_inferita",
         "id_mod_realizz", "cpv_vero"]
     lotti = lotti.drop(columns=missingValuesCols)
     # print("columns dropped with mostly missing values:")
@@ -67,7 +67,7 @@ def split_sum_totals(df):
     temp = temp["importo"] / temp["n_winners"]
     # modifico la copia o l'originale?
     # l'originale secondo quello che so
-    df.iloc[temp.index, 3] = temp.values
+    df.loc[temp.index, "importo"] = temp
     return df
 
 
@@ -105,14 +105,19 @@ def extract_median_yearly_n_contracts(df, agent):
 
 
 def encode_sin_cos(df, period="DayOfYear"):
-    if period == "month":
+    if period == "Month":
         x = df.data_inizio.dt.month
         period_items = 12
-    x = df.data_inizio.dt.day_of_year
-    period_items = 365
+    else:
+        x = df.data_inizio.dt.day_of_year
+        period_items = 365
     df["sin" + period] = np.sin(x / period_items * 2 * np.pi)
     df["cos" + period] = np.cos(x / period_items * 2 * np.pi)
     return df
+
+
+def encode_month_rbf(df):
+    pass
 
 
 def feature_extraction(df):
@@ -131,10 +136,9 @@ def feature_extraction(df):
 
     # contract duration
     df['duration'] = (df.data_fine - df.data_inizio).dt.days
-    df = df.drop(columns=["data_fine"])
 
     # continuous encoding of the day_of_year as (sin, cos) couple
-    df = encode_sin_cos(df, "DayOfYear")
+    df = encode_sin_cos(df, "Month")
     # alternative: use repeating radial basis function.
     # see the nvidia developer guide for encoding time related variables for
     # rough introduction to the use radial basis function
@@ -142,7 +146,7 @@ def feature_extraction(df):
     # replace data_inizio to days since base_date to avoid datetime format
     base_date = df.data_inizio.min()
     df["daysSinceBaseDate"] = (df.data_inizio - base_date).dt.days
-    df = df.drop(columns=["data_inizio"])
+    # df = df.drop(columns=["data_inizio", "data_fine"])
 
     return df
 
