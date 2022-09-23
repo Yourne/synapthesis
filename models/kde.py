@@ -7,10 +7,11 @@ import numpy as np
 import os
 import time
 
+DATADIR = "datasets"
+MODEL = "kde"
+OUTDIR = "output"
+
 if __name__ == "__main__":
-    DATADIR = "datasets"
-    MODEL = "kde"
-    OUTDIR = "output"
     for fname in os.listdir(DATADIR):
         cpv, award_procedure = fname[:-4].split("_")
         dataset = pd.read_csv(os.path.join(DATADIR, fname), index_col="idx")
