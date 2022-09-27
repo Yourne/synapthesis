@@ -190,6 +190,36 @@ def remove_obvious_outliers(df):
     return df
 
 
+def mark_outliers(df):
+    # 1. contracts having a value higher than the median annual revenue of the
+    # business entity winning the bid and of the median expenditure of the
+    # public commissioning body (stazione appaltante). Both the business entity
+    # and the commissioning body must have a median annual number of contracts
+    # higher or equal than five.
+
+    min_yearly_n_contr = 5
+    revenue_mask = (df.importo > df.pa_med_ann_expenditure) & \
+        (df.importo > df.be_med_ann_revenue)
+    min_year_contr_mask = (df.be_med_ann_n_contr > min_yearly_n_contr) & \
+        (df.pa_med_ann_n_contr > min_yearly_n_contr)
+    df["outlier"] = revenue_mask & min_year_contr_mask
+
+    # 2. affidamenti diretti having contract duration lasting longer than 10
+    # years
+    n_years = 10
+    years_mask = (df.id_scelta_contraente == 23) & \
+        (df.duration > n_years * 365)
+    df["outlier"] = df["outlier"] | years_mask
+
+    # 3. contracts having a value 25 times higher than the median revenue of
+    # business entity and more than 5 contracts (median)
+    coef = 25
+    coef_mask = (df.importo > coef * df.be_med_ann_revenue) & \
+        (df.be_med_ann_n_contr > 5)
+    df["outlier"] = df["outlier"] | coef_mask
+    return df
+
+
 abc_procedure_short_names = {
     1: "aperta",
     26: "adesione",
@@ -220,7 +250,7 @@ def save_award_procedure(df, procedure_id, split="train"):
     data = df[df["id_scelta_contraente"] == procedure_id]
     data = data.drop(columns=["id_scelta_contraente", "cpv"])
     fname = path.join(OUTDIR, abc_procedure_short_names[procedure_id] + "_" +
-                      split)
+                      split + ".csv")
     data.to_csv(fname, index_label="idx")
 
 
@@ -228,7 +258,8 @@ if __name__ == "__main__":
     df = load_dataset(INPUTDIR, LOTTI_FNAME, VINCITORI_FNAME)
     df = split_sum_totals(df)
     df = feature_extraction(df)
-    df = remove_obvious_outliers(df)
+    # df = remove_obvious_outliers(df)
+    df = mark_outliers(df)
     df = df.rename(columns={"importo": "amount"})
     # save_abc_only(df)
 
@@ -236,5 +267,5 @@ if __name__ == "__main__":
     df["year"] = df["data_inizio"].dt.year
     df_tr = df[(df["year"] == 2016) | (df["year"] == 2017)]
     df_te = df[df["year"] == 2018]
-    save_award_procedure(df_tr, "train")
-    save_award_procedure(df_tr, "test")
+    save_award_procedure(df_tr, 1, "train")
+    save_award_procedure(df_tr, 1, "test")
