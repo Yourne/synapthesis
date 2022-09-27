@@ -7,13 +7,13 @@ import numpy as np
 import os
 import time
 
-DATADIR = "data"
+DATADIR = "datasets"
 MODEL = "kde"
-OUTDIR = "dataout"
+OUTDIR = "output"
 
 if __name__ == "__main__":
-    # un domani magari analizzermo più procedure nella stessa cartella 
     for fname in os.listdir(DATADIR):
+        cpv, award_procedure = fname[:-4].split("_")
         dataset = pd.read_csv(os.path.join(DATADIR, fname), index_col="idx")
 
         # remove oggetto, id_be, id_pa, id_lsf, data_inizio, data_fine
@@ -21,7 +21,7 @@ if __name__ == "__main__":
             "oggetto", "id_lotto", "id_pa", "id_be", "id_lsf", "data_inizio",
             "data_fine"])
         # remove time related features
-        X = X.drop(columns=["daysSinceBaseDate", 'sinMonth', 'cosMonth'])
+        X = X.drop(columns=["daysSinceBaseDate"])
         # remove median contract pa, median contract be, "pa_med_ann_n_contr",
         # "be_med_ann_n_contr" as they are computed on whole dataset, not only
         # the CPV and award procedure

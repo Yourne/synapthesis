@@ -1,6 +1,7 @@
 synData28June/
 .ipynb_checkpoints/
 .vscode/
+__pycache__/
 synData6July/
 datasets/
 output/

@@ -6,8 +6,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from utils import strjoin
 
-OUTDIR = "output"
+OUTDIR = "dataout"
+AWARD_PROCEDURE = "aperta"
+CPV = None
+MODEL = "oc-svm"
 N_OUTLIERS = 5
+
+# USAGE DESIGN:
+# specify award procedure, cpv (if-any), and the model to eveluate
 
 
 def plot_outlier_distr(N_OUTLIERS, resultsExt, df, outpath):
@@ -48,8 +54,10 @@ def plot_outlier_distr(N_OUTLIERS, resultsExt, df, outpath):
 def scatterscore(X, outpath, features):
     n = len(features)
     fig, ax = plt.subplots(1, n, figsize=(6.4 * n, 4.2), sharey=True)
-    _, award_procedure, model, cpv = outpath.split("/")
-    fig.suptitle(f"{model} {award_procedure} {cpv}")
+    if CPV is not None:
+        fig.suptitle(f"{MODEL} {AWARD_PROCEDURE} {CPV}")
+    else:
+        fig.suptitle(f"{MODEL} {AWARD_PROCEDURE}")
     for i, feature in enumerate(features):
         s = ax[i].scatter(x=X[feature], y=X.amount, c=X.score, alpha=1, s=.2)
         ax[i].legend(*s.legend_elements())
@@ -59,14 +67,11 @@ def scatterscore(X, outpath, features):
         ax[i].set_yscale("log")
     plt.tight_layout()
 
-    # save figure
-    try:
-        os.makedirs(outpath)
-    except FileExistsError:
-        pass
-
-    fname = os.path.join(outpath, strjoin("_", [model, award_procedure, cpv,
-                                                "scatter.png"]))
+    if CPV is not None:
+        fname = strjoin(AWARD_PROCEDURE, CPV, MODEL)
+    else:
+        fname = strjoin(AWARD_PROCEDURE, MODEL)
+    fname = path.join(outpath, fname + "_scatter.png")
     plt.savefig(fname)
     plt.close(fig)
 
@@ -81,24 +86,21 @@ if __name__ == "__main__":
     df = prep.remove_obvious_outliers(df)
     df = df.rename(columns={"importo": "amount"})
 
-    # for each local dataset
-    for award_procedure in os.listdir(OUTDIR):
-        path_to_scores = os.path.join(OUTDIR, award_procedure, "score")
-        for fname in os.listdir(path_to_scores):
-            if fname[-4:] == ".csv":
-                model, award_procedure, cpv, _ = fname[:-4].split("_")
+    # load model results
+    if CPV is not None:
+        inpath = path.join(OUTDIR, AWARD_PROCEDURE, CPV, MODEL)
+        fname = strjoin(AWARD_PROCEDURE, CPV, MODEL, "score.csv")
+    else:
+        inpath = path.join(OUTDIR, AWARD_PROCEDURE, MODEL)
+        fname = strjoin(AWARD_PROCEDURE, MODEL, "score.csv")
+    results = pd.read_csv(path.join(inpath, fname), index_col="idx")
 
-                # load local dataset
-                results = pd.read_csv(os.path.join(path_to_scores, fname),
-                                      index_col="idx")
-                # extend results with df features
-                resultsExt = results.join(df, how="inner")
+    # extend results with global dataset features
+    resultsExt = results.join(df, how="inner")
 
-                outpath = os.path.join(OUTDIR, award_procedure, model, cpv)
-                # scatter results
-                features = [
-                    "pa_med_ann_expenditure", "be_med_ann_revenue", "duration"
-                ]
-                scatterscore(resultsExt, outpath, features)
-                # plot outliers
-                plot_outlier_distr(N_OUTLIERS, resultsExt, df, outpath)
+    # scatter results
+    features = ["pa_med_ann_expenditure", "be_med_ann_revenue", "duration"]
+    scatterscore(resultsExt, inpath, features)
+
+    # plot outliers
+    # plot_outlier_distr(N_OUTLIERS, resultsExt, df, inpath)

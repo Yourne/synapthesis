@@ -2,10 +2,10 @@ import pandas as pd
 import numpy as np
 from os import path
 
-import_directory = "synData6July"
-lotti_fn = "export_lotti_veneto_2016_2018_giulio_v2.csv"
-vincitori_fn = "export_vincitori_veneto_2016_2018_giulio_v2.csv"
-output_directory = "datasets"
+OUTDIR = "data"
+INPUTDIR = "synData6July"
+LOTTI_FNAME = "export_lotti_veneto_2016_2018_giulio_v2.csv"
+VINCITORI_FNAME = "export_vincitori_veneto_2016_2018_giulio_v2.csv"
 
 
 def replace_missing_value(df, col, replacement_col):
@@ -14,9 +14,9 @@ def replace_missing_value(df, col, replacement_col):
     return df
 
 
-def load_dataset(import_directory, lotti_fn, vincitori_fn):
-    lotti = pd.read_csv(path.join(import_directory, lotti_fn))
-    vincitori = pd.read_csv(path.join(import_directory, vincitori_fn))
+def load_dataset(INPUTDIR, LOTTI_FNAME, VINCITORI_FNAME):
+    lotti = pd.read_csv(path.join(INPUTDIR, LOTTI_FNAME))
+    vincitori = pd.read_csv(path.join(INPUTDIR, VINCITORI_FNAME))
 
     # convert datatypes
     lotti.data_inizio = pd.to_datetime(lotti.data_inizio, yearfirst=True)
@@ -212,21 +212,29 @@ def save_abc_only(df):
             data = df[mask].copy()
             data = data.drop(columns=["id_scelta_contraente"])
             file_name = cpv_name + "_" + procedure_name + ".csv"
-            data.to_csv(path.join(output_directory, file_name),
+            data.to_csv(path.join(OUTDIR, file_name),
                         index_label="idx")
 
 
-def save_procedura_aperta(df):
-    data = df[df["id_scelta_contraente"] == 1]
+def save_award_procedure(df, procedure_id, split="train"):
+    data = df[df["id_scelta_contraente"] == procedure_id]
     data = data.drop(columns=["id_scelta_contraente", "cpv"])
-    data.to_csv("data/aperta.csv", index_label="idx")
+    fname = path.join(OUTDIR, abc_procedure_short_names[procedure_id] + "_" +
+                      split)
+    data.to_csv(fname, index_label="idx")
 
 
 if __name__ == "__main__":
-    df = load_dataset(import_directory, lotti_fn, vincitori_fn)
+    df = load_dataset(INPUTDIR, LOTTI_FNAME, VINCITORI_FNAME)
     df = split_sum_totals(df)
     df = feature_extraction(df)
     df = remove_obvious_outliers(df)
     df = df.rename(columns={"importo": "amount"})
     # save_abc_only(df)
-    save_procedura_aperta(df)
+
+    # train test split by year
+    df["year"] = df["data_inizio"].dt.year
+    df_tr = df[(df["year"] == 2016) | (df["year"] == 2017)]
+    df_te = df[df["year"] == 2018]
+    save_award_procedure(df_tr, "train")
+    save_award_procedure(df_tr, "test")

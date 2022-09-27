@@ -27,12 +27,13 @@ def heatmap(features, corrlation_values):
 
     ax.set_title("features correlation")
     fig.tight_layout()
-    plt.savefig(os.path.join(OUTDIR, "correlation.png"))
+    return fig
 
 
 if __name__ == "__main__":
     # load dataset assuming there will be more than one tomorrow
     for fname in os.listdir(DATADIR):
+
         dataset = pd.read_csv(os.path.join(DATADIR, fname), index_col="idx")
 
         # select the features you want to compute the correlation of
@@ -41,17 +42,24 @@ if __name__ == "__main__":
             "pa_med_ann_contr", "be_med_ann_contr",
             "pa_med_ann_n_contr", "be_med_ann_n_contr"
         ]
-        
-        # compute correlation
-        X = dataset[features].corr().values
-        
-        # plot correlation
-        # heatmap(features, X)
-        # # print(dataset.columns)
+
         features = [
             "pa_med_ann_expenditure", "be_med_ann_revenue", "duration",
             'month_2', 'month_3', 'month_4', 'month_5', 'month_6', 'month_7',
             'month_8', 'month_9', 'month_10', 'month_11', 'month_12'
         ]
+
+        features = [
+            "pa_med_ann_expenditure", "be_med_ann_revenue", "duration",
+            "sinMonth", "cosMonth"
+        ]
+
+        # compute corelation
         X = dataset[features].corr().values
-        heatmap(features, X)
+
+        # plot
+        fig = heatmap(features, X)
+        # save plotted figure
+        award_procedure = fname[:-4]
+        outpath = os.path.join(OUTDIR, award_procedure)
+        plt.savefig(os.path.join(OUTDIR, "correlation.png"))

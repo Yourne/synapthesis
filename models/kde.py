@@ -7,13 +7,14 @@ import numpy as np
 import os
 import time
 
-DATADIR = "datasets"
+DATADIR = "data"
 MODEL = "kde"
-OUTDIR = "output"
+OUTDIR = "dataout"
 
 if __name__ == "__main__":
+    # un domani magari analizzermo più procedure nella stessa cartella
     for fname in os.listdir(DATADIR):
-        cpv, award_procedure = fname[:-4].split("_")
+        award_procedure = fname[:-4]
         dataset = pd.read_csv(os.path.join(DATADIR, fname), index_col="idx")
 
         # remove oggetto, id_be, id_pa, id_lsf, data_inizio, data_fine
@@ -21,19 +22,26 @@ if __name__ == "__main__":
             "oggetto", "id_lotto", "id_pa", "id_be", "id_lsf", "data_inizio",
             "data_fine"])
         # remove time related features
-        X = X.drop(columns=["daysSinceBaseDate"])
+        X = X.drop(columns=["daysSinceBaseDate", 'sinMonth', 'cosMonth'])
         # remove median contract pa, median contract be, "pa_med_ann_n_contr",
         # "be_med_ann_n_contr" as they are computed on whole dataset, not only
         # the CPV and award procedure
         X = X.drop(columns=['pa_med_ann_contr', 'be_med_ann_contr',
                             'pa_med_ann_n_contr', 'be_med_ann_n_contr'])
 
+        # print(X.columns)
+        X = X.drop(columns=[
+            'month_2', 'month_3', 'month_4', 'month_5', 'month_6', 'month_7',
+            'month_8', 'month_9', 'month_10', 'month_11', 'month_12'
+        ])
+        # 'amount', 'pa_med_ann_expenditure', 'be_med_ann_revenue', 'duration'
+
         # preprocessing
         X.duration = X.duration.replace(0, X.duration.median())
         scaler = RobustScaler(with_centering=False)
         X = scaler.fit_transform(X)
         # scale only the real-valued columns
-        for i in range(0, 2):
+        for i in range(0, 3):
             X[:, i], _ = boxcox(X[:, i])
 
         # optimize the bandwidth
@@ -55,21 +63,17 @@ if __name__ == "__main__":
         dataset["score"] = kde.score_samples(X)
         dataset = dataset.sort_values(by="score")
 
-        # record the output
-        dataset = dataset.drop(columns=[
-            "data_fine", "id_lsf", "pa_med_ann_expenditure",
-            "be_med_ann_revenue", "pa_med_ann_contr", "be_med_ann_contr",
-            "pa_med_ann_n_contr", "be_med_ann_n_contr", "duration", "sinMonth",
-            "cosMonth", "daysSinceBaseDate"
-        ])
+        # select saving position
+        outpath = os.path.join(OUTDIR, award_procedure, MODEL)
 
-        outpath = os.path.join(OUTDIR, award_procedure, "score")
+        # create folders if needed
         try:
             os.makedirs(outpath)
         except FileExistsError:
             pass
 
-        fname = MODEL + "_" + award_procedure + "_" + cpv + "_score.csv"
+        # create name
+        fname = award_procedure + "_" + MODEL + "_score.csv"
         fname = os.path.join(outpath, fname)
 
         # save the files for Davide
