@@ -211,16 +211,16 @@ abc_cpv_short_names = {
 def save_abc_only(df):
     for cpv, cpv_name in abc_cpv_short_names.items():
         for procedure, procedure_name in abc_procedure_short_names.items():
-            mask = (df.cpv == cpv) & (df.id_scelta_contraente == procedure)
+            mask = (df.cpv == cpv) & (df.id_award_procedure == procedure)
             data = df[mask].copy()
-            data = data.drop(columns=["id_scelta_contraente"])
+            data = data.drop(columns=["id_award_procedure"])
             file_name = cpv_name + "_" + procedure_name + ".csv"
             data.to_csv(path.join(OUTDIR, file_name),
                         index_label="idx")
 
 
 def save_award_procedure(df, procedure_id, split="train"):
-    data = df[df["id_scelta_contraente"] == procedure_id]
+    data = df[df["id_award_procedure"] == procedure_id]
     # data = data.drop(columns=["id_scelta_contraente", "cpv"])
     fname = path.join(OUTDIR, abc_procedure_short_names[procedure_id] + "_" +
                       split + ".csv")
@@ -247,11 +247,16 @@ if __name__ == "__main__":
     df = feature_extraction(df)
     df = remove_infrequent_entities(df, N=25)
     df = mark_outliers(df)
-    df = df.rename(columns={"importo": "amount"})
+    df = df.rename(columns={
+        "importo": "amount",
+        "oggetto": "object",
+        "data_inizio": "start_date",
+        "id_scelta_contraente": "id_award_procedure"
+        })
     # save_abc_only(df)
 
     # train test split by year
-    df["year"] = df["data_inizio"].dt.year
+    df["year"] = df["start_date"].dt.year
     df_tr = df[(df["year"] == 2016) | (df["year"] == 2017)]
     df_te = df[df["year"] == 2018]
     save_award_procedure(df_tr, 1, "train")

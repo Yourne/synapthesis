@@ -30,7 +30,7 @@ class KernelDensityEstimator:
         X.duration = X.duration.replace(0, X.duration.median())
         X = self.scaler.fit_transform(X)
         # scale only the real-valued columns
-        for i in range(0, 3):
+        for i in range(len(self.features)):
             X[:, i], _ = boxcox(X[:, i])
         return X
 
@@ -63,7 +63,6 @@ class KernelDensityEstimator:
         obj["elapsed_time"] = self.time_elapsed
         obj["cv_results_"] = self.optimizer.__dict__["cv_results_"]
         obj["best_estimator"] = self.optimizer.best_estimator_.__dict__
-        # print(self.optimizer.best_estimator_.__dict__)
         return json.dumps(obj, cls=CustomJSONEncoder, indent=4)
 
 

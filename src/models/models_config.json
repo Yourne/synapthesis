@@ -1,0 +1,10 @@
+{
+    "kde": {
+        "module": "models.kde",
+        "class": "KernelDensityEstimator"
+    },
+    "oc-svm": {
+        "module": "models.oc-svm",
+        "class": "OneClassSVMEstimator"
+    }
+}
