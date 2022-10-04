@@ -1,0 +1,39 @@
+{
+    "model": {
+        "class": "KernelDensity",
+        "params": {
+            "algorithm": "auto",
+            "bandwidth": 1.0,
+            "kernel": "gaussian",
+            "metric": "euclidean",
+            "atol": 0,
+            "rtol": 0,
+            "breadth_first": true,
+            "leaf_size": 40,
+            "metric_params": null
+        }
+    },
+    "features": [
+        "amount",
+        "pa_med_ann_expenditure",
+        "be_med_ann_revenue",
+        "duration"
+    ],
+    "scaler": {
+        "class": "RobustScaler",
+        "params": {
+            "with_centering": false,
+            "with_scaling": true,
+            "quantile_range": [
+                25.0,
+                75.0
+            ],
+            "unit_variance": false,
+            "copy": true
+        }
+    },
+    "optimizer": {
+        "class": "GridSearchCV",
+        "params": {
+            "scoring": null,
+            "estimator": 

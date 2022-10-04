@@ -64,8 +64,8 @@ def scatterscore(X, outpath, features):
         ax[i].legend(*s.legend_elements())
         ax[i].set_ylabel("lot amount")
         ax[i].set_xlabel(feature)
-        ax[i].set_xscale("log")
-        ax[i].set_yscale("log")
+        # ax[i].set_xscale("log")
+        # ax[i].set_yscale("log")
     plt.tight_layout()
 
     if CPV is not None:

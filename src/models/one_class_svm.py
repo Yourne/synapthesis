@@ -23,6 +23,10 @@ def outlier_proportion_score(preds, n_outliers):
     return -x**2 - c
 
 
+def train(X):
+    pass
+
+
 if __name__ == "__main__":
     fname = AWARD_PROCEDURE + ".csv"
     dataset = pd.read_csv(path.join(DATADIR, fname), index_col="idx")

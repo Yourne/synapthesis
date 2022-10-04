@@ -24,7 +24,7 @@ def load_dataset(INPUTDIR, LOTTI_FNAME, VINCITORI_FNAME):
     lotti.data_inferita = pd.to_datetime(lotti.data_inferita, yearfirst=True)
 
     # replace missing values in col1 with values from col2
-    lotti = replace_missing_value(lotti, "importo", "importo_base_asta")
+    # lotti = replace_missing_value(lotti, "importo", "importo_base_asta")
     lotti = replace_missing_value(lotti, "data_inizio", "data_inferita")
 
     # drop table attributes with mostly missing values
@@ -46,8 +46,8 @@ def load_dataset(INPUTDIR, LOTTI_FNAME, VINCITORI_FNAME):
     lotti.cpv = lotti.cpv.astype('int')
     # drop columns that lead to sparse matrices
     # following tests: try models that handle sparse datasets
-    lotti = lotti.drop(
-        columns=["id_forma_giuridica", "uber_forma_giuridica"])
+    # lotti = lotti.drop(
+    #     columns=["id_forma_giuridica", "uber_forma_giuridica"])
     vincitori = vincitori.drop(
         columns=["id_forma_giuridica", "uber_forma_giuridica"])
 
@@ -160,49 +160,22 @@ def feature_extraction(df):
     return df
 
 
-def remove_obvious_outliers(df):
-    # 1. contracts having a value higher than the median annual revenue of the
-    # business entity winning the bid and of the median expenditure of the
-    # public commissioning body (stazione appaltante). Both the business entity
-    # and the commissioning body must have a median annual number of contracts
-    # higher or equal than five.
-
-    min_yearly_n_contr = 5
-    revenue_mask = (df.importo > df.pa_med_ann_expenditure) & \
-        (df.importo > df.be_med_ann_revenue)
-    min_year_contr_mask = (df.be_med_ann_n_contr > min_yearly_n_contr) & \
-        (df.pa_med_ann_n_contr > min_yearly_n_contr)
-    df = df[~(revenue_mask & min_year_contr_mask)]
-
-    # 2. affidamenti diretti having contract duration lasting longer than 10
-    # years
-    n_years = 10
-    years_mask = (df.id_scelta_contraente == 23) & \
-        (df.duration > n_years * 365)
-    df = df[~years_mask]
-
-    # 3. contracts having a value 25 times higher than the median revenue of
-    # business entity and more than 5 contracts (median)
-    coef = 25
-    coef_mask = (df.importo > coef * df.be_med_ann_revenue) & \
-        (df.be_med_ann_n_contr > 5)
-    df = df[~coef_mask]
-    return df
-
-
 def mark_outliers(df):
     # 1. contracts having a value higher than the median annual revenue of the
     # business entity winning the bid and of the median expenditure of the
     # public commissioning body (stazione appaltante). Both the business entity
     # and the commissioning body must have a median annual number of contracts
     # higher or equal than five.
+    # the contract duration must be lower than 1 year. If a single lot is very
+    # high but it lasts for 10 years, then it is reasonable.
 
     min_yearly_n_contr = 5
     revenue_mask = (df.importo > df.pa_med_ann_expenditure) & \
         (df.importo > df.be_med_ann_revenue)
     min_year_contr_mask = (df.be_med_ann_n_contr > min_yearly_n_contr) & \
         (df.pa_med_ann_n_contr > min_yearly_n_contr)
-    df["outlier"] = revenue_mask & min_year_contr_mask
+    year_mask = df.duration < 365
+    df["outlier"] = revenue_mask & min_year_contr_mask & year_mask
 
     # 2. affidamenti diretti having contract duration lasting longer than 10
     # years
@@ -248,17 +221,31 @@ def save_abc_only(df):
 
 def save_award_procedure(df, procedure_id, split="train"):
     data = df[df["id_scelta_contraente"] == procedure_id]
-    data = data.drop(columns=["id_scelta_contraente", "cpv"])
+    # data = data.drop(columns=["id_scelta_contraente", "cpv"])
     fname = path.join(OUTDIR, abc_procedure_short_names[procedure_id] + "_" +
                       split + ".csv")
     data.to_csv(fname, index_label="idx")
+
+
+def remove_infrequent_entities(df, N=5):
+    """
+    remove business entities and public authority with a number of issued
+    contracts lower than N=25 or N=7. It depends on the dataset distribution
+    """
+    for agent in ["id_be", "id_pa"]:
+        col_name = "min_nlots_" + agent
+        min_nlots = df.groupby([agent, df.data_inizio.dt.year]).size()
+        min_nlots = min_nlots.unstack().min(axis=1).rename(col_name)
+        df = df.join(min_nlots, on=agent)
+        df = df[df[col_name] > N]
+    return df
 
 
 if __name__ == "__main__":
     df = load_dataset(INPUTDIR, LOTTI_FNAME, VINCITORI_FNAME)
     df = split_sum_totals(df)
     df = feature_extraction(df)
-    # df = remove_obvious_outliers(df)
+    df = remove_infrequent_entities(df, N=25)
     df = mark_outliers(df)
     df = df.rename(columns={"importo": "amount"})
     # save_abc_only(df)
@@ -268,4 +255,4 @@ if __name__ == "__main__":
     df_tr = df[(df["year"] == 2016) | (df["year"] == 2017)]
     df_te = df[df["year"] == 2018]
     save_award_procedure(df_tr, 1, "train")
-    save_award_procedure(df_tr, 1, "test")
+    save_award_procedure(df_te, 1, "test")
