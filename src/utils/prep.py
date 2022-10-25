@@ -14,7 +14,7 @@ def replace_missing_value(df, col, replacement_col):
     return df
 
 
-def load_dataset(INPUTDIR, LOTTI_FNAME, VINCITORI_FNAME):
+def load_dataset():
     lotti = pd.read_csv(path.join(INPUTDIR, LOTTI_FNAME))
     vincitori = pd.read_csv(path.join(INPUTDIR, VINCITORI_FNAME))
 
@@ -52,22 +52,13 @@ def load_dataset(INPUTDIR, LOTTI_FNAME, VINCITORI_FNAME):
         columns=["id_forma_giuridica", "uber_forma_giuridica"])
 
     # merge the datasets
-    return lotti.merge(vincitori, on="id_lotto")
+    return lotti.merge(vincitori, on="id_lotto", how="inner")
 
 
 def split_sum_totals(df):
-    # remove duplicates
-    df = df[~df.duplicated()]
-    # save records having more than one winner in a temporary variable
-    temp = df[df["id_lotto"].duplicated(keep=False)]
-    # equally split the lot sum among all the winners
-    # (uniform distr. is uninformative prior)
-    temp = temp.join(temp.groupby("id_lotto").size().rename("n_winners"),
-                     on="id_lotto")
-    temp = temp["importo"] / temp["n_winners"]
-    # modifico la copia o l'originale?
-    # l'originale secondo quello che so
-    df.loc[temp.index, "importo"] = temp
+    n_winners = df.groupby("id_lotto").size().rename("n_winners")
+    df = df.merge(n_winners, how="left", on="id_lotto")
+    df["importo"] = df["importo"] / df["n_winners"]
     return df
 
 
@@ -219,18 +210,17 @@ def save_abc_only(df):
                         index_label="idx")
 
 
-def save_award_procedure(df, procedure_id, split="train"):
+def save_award_procedure(df, procedure_id):
     data = df[df["id_award_procedure"] == procedure_id]
     # data = data.drop(columns=["id_scelta_contraente", "cpv"])
-    fname = path.join(OUTDIR, abc_procedure_short_names[procedure_id] + "_" +
-                      split + ".csv")
+    fname = path.join(OUTDIR, abc_procedure_short_names[procedure_id] + ".csv")
     data.to_csv(fname, index_label="idx")
 
 
 def remove_infrequent_entities(df, N=5):
     """
     remove business entities and public authority with a number of issued
-    contracts lower than N=25 or N=7. It depends on the dataset distribution
+    contracts lower than N. It depends on the dataset distribution
     """
     for agent in ["id_be", "id_pa"]:
         col_name = "min_nlots_" + agent
@@ -241,11 +231,30 @@ def remove_infrequent_entities(df, N=5):
     return df
 
 
-if __name__ == "__main__":
-    df = load_dataset(INPUTDIR, LOTTI_FNAME, VINCITORI_FNAME)
+def main():
+    df = load_dataset()
     df = split_sum_totals(df)
+    # remove the resulting duplicates
+    df = df[~df.duplicated()]
     df = feature_extraction(df)
-    df = remove_infrequent_entities(df, N=25)
+    df = remove_infrequent_entities(df, N=10)
+    df = mark_outliers(df)
+    df = df.rename(columns={
+        "importo": "amount",
+        "oggetto": "object",
+        "data_inizio": "start_date",
+        "id_scelta_contraente": "id_award_procedure"
+        })
+    return df
+
+
+if __name__ == "__main__":
+    df = load_dataset()
+    df = split_sum_totals(df)
+    # remove the resulting duplicates
+    df = df[~df.duplicated()]
+    df = feature_extraction(df)
+    df = remove_infrequent_entities(df, N=10)
     df = mark_outliers(df)
     df = df.rename(columns={
         "importo": "amount",
@@ -254,10 +263,13 @@ if __name__ == "__main__":
         "id_scelta_contraente": "id_award_procedure"
         })
     # save_abc_only(df)
+    df = save_award_procedure(df, 1)
+
+
 
     # train test split by year
-    df["year"] = df["start_date"].dt.year
-    df_tr = df[(df["year"] == 2016) | (df["year"] == 2017)]
-    df_te = df[df["year"] == 2018]
-    save_award_procedure(df_tr, 1, "train")
-    save_award_procedure(df_te, 1, "test")
+    # df["year"] = df["start_date"].dt.year
+    # df_tr = df[(df["year"] == 2016) | (df["year"] == 2017)]
+    # df_te = df[df["year"] == 2018]
+    # save_award_procedure(df_tr, 1, "train")
+    # save_award_procedure(df_te, 1, "test")

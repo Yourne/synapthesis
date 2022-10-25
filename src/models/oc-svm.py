@@ -47,6 +47,7 @@ class OneClassSVMEstimator:
 
     def opt_params(self, X: np.array) -> None:
         nu = self.n_outliers / X.shape[0]
+        
         # params = {"nu": [nu - i for i in [10e-4, 0, -10e-3]]}
         # print(params)
         # # GridSearchCV requires a scoring function.
@@ -59,6 +60,7 @@ class OneClassSVMEstimator:
         # self.optimizer.fit(X)
         # self.time_elapsed = time.time() - start
         # self.model = self.optimizer.best_estimator_
+
         self.model = OneClassSVM(nu=nu)
         self.model.fit(X)
 

@@ -6,7 +6,7 @@ import json
 
 # constants
 # might change them to command-line arguments
-MODEL = "oc-svm"
+MODEL = "kde"
 OUTDIR = "output"
 
 
@@ -19,7 +19,7 @@ model = getattr(module, config["class"])()
 
 
 # laod a dataset
-fname = "aperta_train"
+fname = "aperta"
 dataset = pd.read_csv(os.path.join("data", fname+".csv"), index_col="idx")
 X = model.preprocess(dataset)
 # model.opt_params(config["optimizer"]["args"]["params"], X)
@@ -27,3 +27,4 @@ model.opt_params(X)
 dataset["score"] = model.test(X)
 
 utils.recordexper(fname, OUTDIR, MODEL, dataset, model)
+
