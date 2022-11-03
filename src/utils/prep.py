@@ -238,7 +238,9 @@ def main():
     df = df[~df.duplicated()]
     df = feature_extraction(df)
     df = remove_infrequent_entities(df, N=10)
-    df = mark_outliers(df)
+    # df = mark_outliers(df)
+    outliers_checked = pd.read_csv("output/checked_outliers.csv", index_col=0)
+    df = df.merge(outliers_checked, how="left", on="id_lotto")
     df = df.rename(columns={
         "importo": "amount",
         "oggetto": "object",
@@ -255,14 +257,15 @@ if __name__ == "__main__":
     df = df[~df.duplicated()]
     df = feature_extraction(df)
     df = remove_infrequent_entities(df, N=10)
-    df = mark_outliers(df)
+    # df = mark_outliers(df)
+    outliers_checked = pd.read_csv("output/checked_outliers.csv", index_col=0)
+    df = df.merge(outliers_checked, how="left", on="id_lotto")
     df = df.rename(columns={
         "importo": "amount",
         "oggetto": "object",
         "data_inizio": "start_date",
         "id_scelta_contraente": "id_award_procedure"
         })
-    # save_abc_only(df)
     df = save_award_procedure(df, 1)
 
 

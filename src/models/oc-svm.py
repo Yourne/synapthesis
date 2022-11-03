@@ -28,7 +28,8 @@ class OneClassSVMEstimator:
 
     def preprocess(self, dataset: pd.DataFrame) -> np.array:
         # record the number of outliers
-        self.n_outliers = sum(dataset["outlier"])
+        # self.n_outliers = sum(dataset["OUTLIER"])
+        self.n_outliers = 100
 
         # check the required features
         for f in self.features:

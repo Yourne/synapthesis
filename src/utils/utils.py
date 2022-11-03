@@ -23,6 +23,6 @@ def recordexper(DSNAME, OUTDIR, MODEL, dataset, model):
 
     features = ["id_lotto", "score", "amount", "duration", "start_date",
                 "id_award_procedure", "id_pa", "uber_forma_giuridica",
-                "id_be", "object", "outlier", "be_med_ann_revenue",
+                "id_be", "object", "OUTLIER", "be_med_ann_revenue",
                 "pa_med_ann_expenditure"]
     dataset[features].sort_values("score").to_csv(fname+".csv")
