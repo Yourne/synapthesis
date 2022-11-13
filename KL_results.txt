@@ -1,0 +1,10 @@
+P16,Q16,KL:resultP16,Q17,KL:resultP16,Q18,KL:resultP17,Q16,KL:resultP17,Q17,KL:resultP17,Q18,KL:resultP18,Q16,KL:resultP18,Q17,KL:resultP18,Q18,KL:resultP16,Q16,KL:result
+P16,Q17,KL:result
+P16,Q18,KL:result
+P17,Q16,KL:result
+P17,Q17,KL:result
+P17,Q18,KL:result
+P18,Q16,KL:result
+P18,Q17,KL:result
+P18,Q18,KL:result
+2022-11-08

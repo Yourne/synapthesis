@@ -124,28 +124,28 @@ def feature_extraction(df):
     df = extract_median_yearly_revenue(df, "id_be")
 
     # median rev/expenditure contract by year
-    df = extract_median_contract(df, "id_pa")
-    df = extract_median_contract(df, "id_be")
+    # df = extract_median_contract(df, "id_pa")
+    # df = extract_median_contract(df, "id_be")
 
-    # median number of contracts by year
-    df = extract_median_yearly_n_contracts(df, "id_pa")
-    df = extract_median_yearly_n_contracts(df, "id_be")
+    # # median number of contracts by year
+    # df = extract_median_yearly_n_contracts(df, "id_pa")
+    # df = extract_median_yearly_n_contracts(df, "id_be")
 
     # contract duration
     df['duration'] = (df.data_fine - df.data_inizio).dt.days
 
     # month one-hot encoding
-    df = dummy_month(df)
+    # df = dummy_month(df)
 
     # continuous encoding of the day_of_year/month as (sin, cos) couple
-    df = encode_sin_cos(df, "Month")
+    # df = encode_sin_cos(df, "Month")
     # alternative: use repeating radial basis function.
     # see the nvidia developer guide for encoding time related variables for
     # rough introduction to the use radial basis function
 
     # replace data_inizio to days since base_date to avoid datetime format
-    base_date = df.data_inizio.min()
-    df["daysSinceBaseDate"] = (df.data_inizio - base_date).dt.days
+    # base_date = df.data_inizio.min()
+    # df["daysSinceBaseDate"] = (df.data_inizio - base_date).dt.days
     # df = df.drop(columns=["data_inizio", "data_fine"])
 
     return df
@@ -217,7 +217,7 @@ def save_award_procedure(df, procedure_id):
     data.to_csv(fname, index_label="idx")
 
 
-def remove_infrequent_entities(df, N=5):
+def remove_infrequent_entities(df, N=10):
     """
     remove business entities and public authority with a number of issued
     contracts lower than N. It depends on the dataset distribution
@@ -231,12 +231,35 @@ def remove_infrequent_entities(df, N=5):
     return df
 
 
+def main_award_procedures(df, proc_list=[1, 4, 23, 26]) -> pd.DataFrame:
+    mask = df["id_scelta_contraente"] == proc_list[0]
+    for proc in proc_list[:][1:]:
+        mask += df["id_scelta_contraente"] == proc
+    return df[mask]
+
+
+# def global_dataset():
+#     df = load_dataset()
+#     df = split_sum_totals(df)
+#     # remove the resulting duplicates
+#     df = df[~df.duplicated()]
+#     df = feature_extraction(df)
+#     df = df.merge(outliers_checked, how="left", on="id_lotto")
+#     df = df.rename(columns={
+#         "importo": "amount",
+#         "oggetto": "object",
+#         "data_inizio": "start_date",
+#         "id_scelta_contraente": "id_award_procedure"
+#         })
+#     return df
+
 def main():
     df = load_dataset()
     df = split_sum_totals(df)
     # remove the resulting duplicates
     df = df[~df.duplicated()]
     df = feature_extraction(df)
+    df = main_award_procedures(df)
     df = remove_infrequent_entities(df, N=10)
     # df = mark_outliers(df)
     outliers_checked = pd.read_csv("output/checked_outliers.csv", index_col=0)
@@ -256,6 +279,7 @@ if __name__ == "__main__":
     # remove the resulting duplicates
     df = df[~df.duplicated()]
     df = feature_extraction(df)
+    df = main_award_procedures(df)
     df = remove_infrequent_entities(df, N=10)
     # df = mark_outliers(df)
     outliers_checked = pd.read_csv("output/checked_outliers.csv", index_col=0)
@@ -266,9 +290,9 @@ if __name__ == "__main__":
         "data_inizio": "start_date",
         "id_scelta_contraente": "id_award_procedure"
         })
-    df = save_award_procedure(df, 1)
-
-
+    fname = path.join(OUTDIR, "contracts" + ".csv")
+    df.to_csv(fname, index_label="idx")
+    # save_award_procedure(df, 1)
 
     # train test split by year
     # df["year"] = df["start_date"].dt.year

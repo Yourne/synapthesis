@@ -28,4 +28,3 @@ model.opt_params(X)
 dataset["score"] = model.test(X)
 
 utils.recordexper(fname, OUTDIR, MODEL, dataset, model)
-
