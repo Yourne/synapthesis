@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from os import path
+import csv
 
 OUTDIR = "data"
 INPUTDIR = "synData6July"
@@ -228,6 +229,7 @@ def remove_infrequent_entities(df, N=10):
         min_nlots = min_nlots.unstack().min(axis=1).rename(col_name)
         df = df.join(min_nlots, on=agent)
         df = df[df[col_name] > N]
+        df = df.drop(columns=[col_name])
     return df
 
 
@@ -253,6 +255,13 @@ def main_award_procedures(df, proc_list=[1, 4, 23, 26]) -> pd.DataFrame:
 #         })
 #     return df
 
+def applyQuotes(s: pd.Series) -> pd.Series:
+    pass
+    # if there are no quotes, it applies quotes
+
+    # if there are, then no changes
+
+
 def main():
     df = load_dataset()
     df = split_sum_totals(df)
@@ -262,8 +271,9 @@ def main():
     df = main_award_procedures(df)
     df = remove_infrequent_entities(df, N=10)
     # df = mark_outliers(df)
-    outliers_checked = pd.read_csv("output/checked_outliers.csv", index_col=0)
-    df = df.merge(outliers_checked, how="left", on="id_lotto")
+    # outliers_checked = pd.read_csv("output/checked_outliers.csv",
+    #                                 index_col=0)
+    # df = df.merge(outliers_checked, how="left", on="id_lotto")
     df = df.rename(columns={
         "importo": "amount",
         "oggetto": "object",
@@ -274,29 +284,8 @@ def main():
 
 
 if __name__ == "__main__":
-    df = load_dataset()
-    df = split_sum_totals(df)
-    # remove the resulting duplicates
-    df = df[~df.duplicated()]
-    df = feature_extraction(df)
-    df = main_award_procedures(df)
-    df = remove_infrequent_entities(df, N=10)
-    # df = mark_outliers(df)
-    outliers_checked = pd.read_csv("output/checked_outliers.csv", index_col=0)
-    df = df.merge(outliers_checked, how="left", on="id_lotto")
-    df = df.rename(columns={
-        "importo": "amount",
-        "oggetto": "object",
-        "data_inizio": "start_date",
-        "id_scelta_contraente": "id_award_procedure"
-        })
-    fname = path.join(OUTDIR, "contracts" + ".csv")
-    df.to_csv(fname, index_label="idx")
-    # save_award_procedure(df, 1)
-
-    # train test split by year
-    # df["year"] = df["start_date"].dt.year
-    # df_tr = df[(df["year"] == 2016) | (df["year"] == 2017)]
-    # df_te = df[df["year"] == 2018]
-    # save_award_procedure(df_tr, 1, "train")
-    # save_award_procedure(df_te, 1, "test")
+    df = main()
+    # df["object"] = df["object"].transform(applyQuotes)
+    fname = path.join(OUTDIR, "contracts.csv")
+    df.to_csv(fname, index_label=False, index=False,
+              quoting=csv.QUOTE_NONNUMERIC)
