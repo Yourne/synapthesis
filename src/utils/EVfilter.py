@@ -6,7 +6,7 @@ import csv
 
 FNAME = "contracts.csv"
 INPUTDIR = "data"
-K = 3
+K = 2
 
 
 def remove_boxcox_exceptions(df: pd.DataFrame, entity: str) -> pd.DataFrame:
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         df[ent+"_amount"] = df.groupby(entity)[ent+"_amount"].transform(boxcox)
 
         # compute 3 * standard deviations
-        kstd = df.groupby(entity)[ent+"_amount"].std().rename(ent+"_3std")
+        kstd = df.groupby(entity)[ent+"_amount"].std().rename(ent+"_kstd")
         kstd = K * kstd
         df = df.join(kstd, on=entity)
 
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         df = df.join(mean.rename(ent+"_mean"), on=entity)
 
         # Chebishev inequlity
-        mask = np.abs(df[ent+"_amount"] - df[ent + "_mean"]) > df[ent+"_3std"]
+        mask = np.abs(df[ent+"_amount"] - df[ent + "_mean"]) > df[ent+"_kstd"]
         df[ent + "_probOut"] = mask
 
     # DURATION
@@ -88,14 +88,16 @@ if __name__ == "__main__":
     mean = df["duration_scaled"].mean()
     # Chebishev inquality
     mask = np.abs(df["duration_scaled"] - mean) > kstd
-    df["duration_probOut"] = mask   
+    df["duration_probOut"] = mask
     print(sum(df["duration_probOut"]))
     print(sum(df["be_probOut"]))
     print(sum(df["pa_probOut"]))
-    print(sum(df.shape))
-    # sample dataset
+    print(df.shape)
+
+    N = 201  # number of manually selected samples
+    frac = N / len(df)
     subset = df.groupby(["id_award_procedure", df.start_date.dt.year],
-                        group_keys=False).apply(lambda x: x.sample(frac=1/300,
+                        group_keys=False).apply(lambda x: x.sample(frac=frac,
                                                 random_state=42))
 
     # save as csv

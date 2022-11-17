@@ -48,7 +48,7 @@ class OneClassSVMEstimator:
 
     def opt_params(self, X: np.array) -> None:
         nu = self.n_outliers / X.shape[0]
-        
+
         # params = {"nu": [nu - i for i in [10e-4, 0, -10e-3]]}
         # print(params)
         # # GridSearchCV requires a scoring function.

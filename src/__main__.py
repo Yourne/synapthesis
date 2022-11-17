@@ -19,10 +19,9 @@ model = getattr(module, config["class"])()
 
 
 # laod a dataset
-fname = "aperta"
-dataset = pd.read_csv(os.path.join("data", fname+".csv"), index_col="idx")
+fname = "contracts"
+dataset = pd.read_csv(os.path.join("data", fname+".csv"))
 X = model.preprocess(dataset)
-print(X.var())
 # model.opt_params(config["optimizer"]["args"]["params"], X)
 model.opt_params(X)
 dataset["score"] = model.test(X)

@@ -1,4 +1,3 @@
-import time
 from sklearn.neighbors import KernelDensity, KDTree
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import RobustScaler
@@ -27,7 +26,7 @@ class KernelDensityEstimator:
         X = dataset[self.features]
 
         # preprocessing
-        X.duration = X.duration.replace(0, X.duration.median())
+        X = X.replace({"duration": 0}, 1)
         X = self.scaler.fit_transform(X)
         # scale only the real-valued columns
         for i in range(len(self.features)):
@@ -35,9 +34,9 @@ class KernelDensityEstimator:
         return X
 
     def opt_params(self, X: np.array) -> None:
-        start = time.time()
-        self.optimizer.fit(X)
-        self.time_elapsed = time.time() - start
+        # start = time.time()
+        # self.optimizer.fit(X)
+        # self.time_elapsed = time.time() - start
         # print(f"model selection required {elapsed:2f} s")
         # print("best params: {0}".format(
         #     self.optimizer.best_estimator_.bandwidth))
@@ -45,7 +44,7 @@ class KernelDensityEstimator:
         # print(self.optimizer.best_estimator_.__dict__)
         # for p in self.params:
         #     optimal_params[p] = best_estimator[p]
-        self.model = self.optimizer.best_estimator_
+        self.model = self.model.fit(X)
 
     def test(self, X: np.array) -> np.array:
         return self.model.score_samples(X)
