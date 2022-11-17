@@ -106,7 +106,7 @@ if __name__ == "__main__":
         "id_pa", "uber_forma_giuridica", "id_be", "object",
         "be_med_ann_revenue", "pa_med_ann_expenditure", "be_probOut",
         "be_stdconfint", "pa_probOut", "pa_stdconfint", "duration_probOut"
-        ]
+    ]
     fname = os.path.join(INPUTDIR, "subset.csv")
     subset[features_to_csv].to_csv(fname, index_label=False, index=False,
                                    quoting=csv.QUOTE_NONNUMERIC)

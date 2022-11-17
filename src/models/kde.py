@@ -1,23 +1,24 @@
 from sklearn.neighbors import KernelDensity, KDTree
-from sklearn.model_selection import GridSearchCV
+# from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import RobustScaler
 from scipy.stats import boxcox
 import numpy as np
 import pandas as pd
 import json
+import time
 
 
 class KernelDensityEstimator:
 
     def __init__(self) -> None:
-        self.model = KernelDensity()
+        self.model = KernelDensity(bandwidth=1)
         self.features = ['amount', 'pa_med_ann_expenditure',
                          'be_med_ann_revenue', 'duration']
         self.scaler = RobustScaler(with_centering=False)
-        params = {"bandwidth": np.logspace(-2, 1, 4)}
-        self.optimizer = GridSearchCV(
-            estimator=self.model, param_grid=params, cv=3, verbose=1
-        )
+        # params = {"bandwidth": np.logspace(-2, 1, 4)}
+        # self.optimizer = GridSearchCV(
+        #     estimator=self.model, param_grid=params, cv=3, verbose=1
+        # )
 
     def preprocess(self, dataset: pd.DataFrame) -> np.array:
         for f in self.features:
@@ -34,7 +35,7 @@ class KernelDensityEstimator:
         return X
 
     def opt_params(self, X: np.array) -> None:
-        # start = time.time()
+        start = time.time()
         # self.optimizer.fit(X)
         # self.time_elapsed = time.time() - start
         # print(f"model selection required {elapsed:2f} s")
@@ -45,6 +46,7 @@ class KernelDensityEstimator:
         # for p in self.params:
         #     optimal_params[p] = best_estimator[p]
         self.model = self.model.fit(X)
+        self.time_elapsed = time.time() - start
 
     def test(self, X: np.array) -> np.array:
         return self.model.score_samples(X)
@@ -55,13 +57,15 @@ class KernelDensityEstimator:
         obj["features"] = self.features
         obj[self.scaler.__class__.__name__] = self.scaler.__dict__
         obj["boxcox"] = "function"
-        opt_name = self.optimizer.__class__.__name__
-        obj[opt_name] = dict()
-        obj[opt_name]["param_grid"] = self.optimizer.__dict__["param_grid"]
-        obj[opt_name]["cv"] = self.optimizer.__dict__["cv"]
         obj["elapsed_time"] = self.time_elapsed
-        obj["cv_results_"] = self.optimizer.__dict__["cv_results_"]
-        obj["best_estimator"] = self.optimizer.best_estimator_.__dict__
+        obj["best_estimator"] = self.model.__dict__
+        # when the optimizer was
+        # opt_name = self.optimizer.__class__.__name__
+        # obj[opt_name] = dict()
+        # obj[opt_name]["param_grid"] = self.optimizer.__dict__["param_grid"]
+        # obj[opt_name]["cv"] = self.optimizer.__dict__["cv"]
+        # obj["cv_results_"] = self.optimizer.__dict__["cv_results_"]
+        # obj["best_estimator"] = self.optimizer.best_estimator_.__dict__
         return json.dumps(obj, cls=CustomJSONEncoder, indent=4)
 
 

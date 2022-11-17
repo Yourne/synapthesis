@@ -1,5 +1,6 @@
 import time
 import os
+import csv
 
 
 def strjoin(*words, separator="_"):
@@ -25,4 +26,7 @@ def recordexper(DSNAME, OUTDIR, MODEL, dataset, model):
                 "id_award_procedure", "id_pa", "uber_forma_giuridica",
                 "id_be", "object", "be_med_ann_revenue",
                 "pa_med_ann_expenditure"]
-    dataset[features].sort_values("score").to_csv(fname+".csv")
+    dataset[features].sort_values("score").to_csv(
+        fname+".csv", index_label=False, index=False,
+        quoting=csv.QUOTE_NONNUMERIC,
+    )

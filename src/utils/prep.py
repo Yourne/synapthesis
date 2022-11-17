@@ -286,6 +286,7 @@ def main():
 if __name__ == "__main__":
     df = main()
     # df["object"] = df["object"].transform(applyQuotes)
-    fname = path.join(OUTDIR, "contracts.csv")
+    df = df[df["id_award_procedure"] == 1]
+    fname = path.join(OUTDIR, "aperta.csv")
     df.to_csv(fname, index_label=False, index=False,
               quoting=csv.QUOTE_NONNUMERIC)

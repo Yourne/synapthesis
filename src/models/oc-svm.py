@@ -23,23 +23,17 @@ class OneClassSVMEstimator:
         self.features = ['amount', 'pa_med_ann_expenditure',
                          'be_med_ann_revenue', 'duration']
         self.scaler = RobustScaler(with_centering=False)
-        self.n_outliers = None
+        self.n_outliers = 100
         self.optimizer = None
 
     def preprocess(self, dataset: pd.DataFrame) -> np.array:
-        # record the number of outliers
-        # self.n_outliers = sum(dataset["OUTLIER"])
-        self.n_outliers = 100
-
-        # check the required features
         for f in self.features:
             assert f in dataset.columns, f"{f} not in input dataset features"
-
-        # trim unused features
+        # trim the unused features
         X = dataset[self.features]
 
-        # prerpocessing
-        X.duration = X.duration.replace(0, X.duration.median())
+        # preprocessing
+        X = X.replace({"duration": 0}, 1)
         X = self.scaler.fit_transform(X)
         # scale only the real-valued columns
         for i in range(len(self.features)):
