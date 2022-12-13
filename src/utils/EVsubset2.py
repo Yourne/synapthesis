@@ -17,6 +17,9 @@ def remove_boxcox_exceptions(df: pd.DataFrame, entity: str) -> pd.DataFrame:
         except ValueError:
             exceptions.append(name)
             continue
+
+    print(f"boxcox exceptions: {len(exceptions)}")
+
     if len(exceptions) == 0:
         return df
     else:
@@ -58,14 +61,18 @@ if __name__ == "__main__":
         df[ent+"_amount"] = df["amount"].transform(IQRscale)
         df[ent+"_amount"] = df.groupby(entity)[ent+"_amount"].transform(boxcox)
 
-        # compute k * standard deviations
+        # compute 3 * standard deviations
         kstd = df.groupby(entity)[ent+"_amount"].std().rename(ent+"_kstd")
         kstd = K * kstd
         df = df.join(kstd, on=entity)
 
-        # add N paramater to estimate the quality of the standard deviation
+        # compute the number of won lots
         nlots = df.groupby(entity).size().rename(ent+"_nlots")
         df = df.join(nlots, on=entity)
+
+        # compute the std
+        std = df.groupby(entity)[ent+"_amount"].std().rename(ent+"_std")
+        df = df.join(std, on=entity)
 
         # compute the mean
         mean = df.groupby(entity)[ent+"_amount"].mean()
@@ -89,17 +96,27 @@ if __name__ == "__main__":
     mask = np.abs(df["duration_scaled"] - mean) > kstd
     df["duration_probOut"] = mask
 
-    subset = df.groupby(
+    aperta = df[df["id_award_procedure"] == 1]
+    subset = aperta.groupby(
         df.start_date.dt.year,
-        group_keys=False).apply(lambda x: x.sample(200, random_state=42))
+        group_keys=False).apply(lambda x: x.sample(67, random_state=42))
 
     # save as csv
-    features_to_csv = [
-        "id_lotto", "amount", "duration", "start_date", "id_award_procedure",
-        "id_pa", "id_be", "object", "be_med_ann_revenue",
-        "pa_med_ann_expenditure", "be_probOut",
-        "be_nlots", "pa_probOut", "pa_nlots", "duration_probOut"
+    features = [
+        "amount",
+        "be_med_ann_revenue", "be_probOut", "be_std", "be_nlots",
+        "pa_med_ann_expenditure", "pa_probOut", "pa_std", "pa_nlots",
+        "duration",
+        "object", "start_date", "id_award_procedure", "id_pa", "id_be",
+        "id_lotto"
     ]
+
+    # true outliers lot ids checked on the platform
+    outliers = [7531663]
+    subset["outlier"] = False
+    subset.loc[subset["id_lotto"] == outliers[0], "outlier"] = True
+    features.append("outlier")
+
     fname = os.path.join(INPUTDIR, "subset_aperta.csv")
-    subset[features_to_csv].to_csv(fname, index_label=False, index=False,
-                                   quoting=csv.QUOTE_NONNUMERIC)
+    subset[features].to_csv(fname, index_label=False, index=False,
+                            quoting=csv.QUOTE_NONNUMERIC)

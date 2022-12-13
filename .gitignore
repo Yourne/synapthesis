@@ -1,6 +1,7 @@
 synData28June/
 .ipynb_checkpoints/
 .vscode/
+.spyproject/
 __pycache__/
 synData6July/
 datasets/
@@ -10,3 +11,4 @@ data/
 dataout/
 images/
 miscellanea/
+histfigures/

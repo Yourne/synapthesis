@@ -64,7 +64,7 @@ def split_sum_totals(df):
 
 
 def extract_median_yearly_revenue(df, agent):
-    rev_by_year = df.groupby([agent, df.data_inizio.dt.year]).sum().importo
+    rev_by_year = df.groupby([agent, df.data_inizio.dt.year]).importo.sum()
     rev_by_year = rev_by_year.unstack()
     med_yearly_rev = rev_by_year.median(axis=1)
     if agent == "id_pa":
@@ -255,12 +255,6 @@ def main_award_procedures(df, proc_list=[1, 4, 23, 26]) -> pd.DataFrame:
 #         })
 #     return df
 
-def applyQuotes(s: pd.Series) -> pd.Series:
-    pass
-    # if there are no quotes, it applies quotes
-
-    # if there are, then no changes
-
 
 def main():
     df = load_dataset()
@@ -268,7 +262,7 @@ def main():
     # remove the resulting duplicates
     df = df[~df.duplicated()]
     df = feature_extraction(df)
-    df = main_award_procedures(df)
+    # df = main_award_procedures(df) # only if analyze by a
     df = remove_infrequent_entities(df, N=10)
     # df = mark_outliers(df)
     # outliers_checked = pd.read_csv("output/checked_outliers.csv",
@@ -286,7 +280,7 @@ def main():
 if __name__ == "__main__":
     df = main()
     # df["object"] = df["object"].transform(applyQuotes)
-    df = df[df["id_award_procedure"] == 1]
-    fname = path.join(OUTDIR, "aperta.csv")
+    # df = df[df["id_award_procedure"] == 1]
+    fname = path.join(OUTDIR, "mainset.csv")
     df.to_csv(fname, index_label=False, index=False,
               quoting=csv.QUOTE_NONNUMERIC)
