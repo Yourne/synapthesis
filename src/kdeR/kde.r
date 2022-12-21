@@ -1,4 +1,5 @@
 library(MASS)
+library(ggplot2)
 
 dt <- read.table("data/aperta.csv", header = TRUE, sep = ",")
 
@@ -32,5 +33,20 @@ for (i in 1:ncol(dt)) {
     dt[, i] <- boxcox.transform(dt[, i], lambda)
 }
 
-# ks
+# Normal scale bandwidth
+(Hns <- ks::Hns(x = dt))
+
+# Kernel density estimation
+# eval.points decides where to evaluate fhat
+# binned = FALSE imposes to use non-evenly spaced eval .points
+# binned = TRUE (default) interpolates eval.points to have estimates of fhat
+fhat <- ks::kde(x = dt, H = Hns, eval.point=dt, binned=FALSE)
+
+# now fhat may be vary overfitted. Let's compute the binned version
+fhat <- ks::kde(x= dt, H = Hns)
+# then, estimate with
+predict(fhat, x=dt)
+
+# understand the cont attribute of object fhat
+sum(predict(fhat, x=dt) <= fhat[["cont"]][["1%"]], na.rm = TRUE)
 
