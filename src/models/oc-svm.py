@@ -23,7 +23,7 @@ class OneClassSVMEstimator:
         self.features = ['amount', 'pa_med_ann_expenditure',
                          'be_med_ann_revenue', 'duration']
         self.scaler = RobustScaler(with_centering=False)
-        self.n_outliers = 100
+        self.n_outliers = 10
         self.optimizer = None
 
     def preprocess(self, dataset: pd.DataFrame) -> np.array:
@@ -40,21 +40,8 @@ class OneClassSVMEstimator:
             X[:, i], _ = boxcox(X[:, i])
         return X
 
-    def opt_params(self, X: np.array) -> None:
+    def fit(self, X: np.array) -> None:
         nu = self.n_outliers / X.shape[0]
-
-        # params = {"nu": [nu - i for i in [10e-4, 0, -10e-3]]}
-        # print(params)
-        # # GridSearchCV requires a scoring function.
-        # # The proportion of outliers, assuming to know it.
-        # score = make_scorer(outlier_proportion_score)
-        # self.optimizer = GridSearchCV(
-        #     estimator=self.model, param_grid=params, scoring=score
-        # )
-        # start = time.time()
-        # self.optimizer.fit(X)
-        # self.time_elapsed = time.time() - start
-        # self.model = self.optimizer.best_estimator_
 
         self.model = OneClassSVM(nu=nu)
         self.model.fit(X)

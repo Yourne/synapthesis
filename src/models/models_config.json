@@ -4,11 +4,11 @@
         "class": "KernelDensityEstimator"
     },
     "oc-svm": {
-        "module": "models.oc-svm",
+        "module": "src.models.oc-svm",
         "class": "OneClassSVMEstimator"
     },
     "gmm": {
-        "module": "models.gmm",
+        "module": "src.models.gmm",
         "class": "GaussianMixtureEstimator"
     },
     "lof": {

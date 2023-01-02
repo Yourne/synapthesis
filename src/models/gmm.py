@@ -8,7 +8,8 @@ import json
 
 class GaussianMixtureEstimator:
     def __init__(self) -> None:
-        self.model = GaussianMixture()
+        # best model hyper params
+        self.model = GaussianMixture(n_components=50, covariance_type="diag")
         self.features = ["amount", "pa_med_ann_expenditure",
                          "be_med_ann_revenue", "duration"]
         self.scaler = RobustScaler(with_centering=False)
@@ -41,6 +42,9 @@ class GaussianMixtureEstimator:
                     lowest_bic = self.bic[-1]
                     # best_gmm = gmm
                     self.model = gmm
+
+    def fit(self, X: np.array):
+        self.model.fit(X)
 
     def test(self, X: np.array) -> np.array:
         return self.model.score_samples(X)

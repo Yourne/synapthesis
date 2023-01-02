@@ -152,70 +152,70 @@ def feature_extraction(df):
     return df
 
 
-def mark_outliers(df):
-    # 1. contracts having a value higher than the median annual revenue of the
-    # business entity winning the bid and of the median expenditure of the
-    # public commissioning body (stazione appaltante). Both the business entity
-    # and the commissioning body must have a median annual number of contracts
-    # higher or equal than five.
-    # the contract duration must be lower than 1 year. If a single lot is very
-    # high but it lasts for 10 years, then it is reasonable.
+# def mark_outliers(df):
+#     # 1. contracts having a value higher than the median annual revenue of the
+#     # business entity winning the bid and of the median expenditure of the
+#     # public commissioning body (stazione appaltante). Both the business entity
+#     # and the commissioning body must have a median annual number of contracts
+#     # higher or equal than five.
+#     # the contract duration must be lower than 1 year. If a single lot is very
+#     # high but it lasts for 10 years, then it is reasonable.
 
-    min_yearly_n_contr = 5
-    revenue_mask = (df.importo > df.pa_med_ann_expenditure) & \
-        (df.importo > df.be_med_ann_revenue)
-    min_year_contr_mask = (df.be_med_ann_n_contr > min_yearly_n_contr) & \
-        (df.pa_med_ann_n_contr > min_yearly_n_contr)
-    year_mask = df.duration < 365
-    df["outlier"] = revenue_mask & min_year_contr_mask & year_mask
+#     min_yearly_n_contr = 5
+#     revenue_mask = (df.importo > df.pa_med_ann_expenditure) & \
+#         (df.importo > df.be_med_ann_revenue)
+#     min_year_contr_mask = (df.be_med_ann_n_contr > min_yearly_n_contr) & \
+#         (df.pa_med_ann_n_contr > min_yearly_n_contr)
+#     year_mask = df.duration < 365
+#     df["outlier"] = revenue_mask & min_year_contr_mask & year_mask
 
-    # 2. affidamenti diretti having contract duration lasting longer than 10
-    # years
-    n_years = 10
-    years_mask = (df.id_scelta_contraente == 23) & \
-        (df.duration > n_years * 365)
-    df["outlier"] = df["outlier"] | years_mask
+#     # 2. affidamenti diretti having contract duration lasting longer than 10
+#     # years
+#     n_years = 10
+#     years_mask = (df.id_scelta_contraente == 23) & \
+#         (df.duration > n_years * 365)
+#     df["outlier"] = df["outlier"] | years_mask
 
-    # 3. contracts having a value 25 times higher than the median revenue of
-    # business entity and more than 5 contracts (median)
-    coef = 25
-    coef_mask = (df.importo > coef * df.be_med_ann_revenue) & \
-        (df.be_med_ann_n_contr > 5)
-    df["outlier"] = df["outlier"] | coef_mask
-    return df
-
-
-abc_procedure_short_names = {
-    1: "aperta",
-    26: "adesione",
-    4: "negoziata",
-    23: "affidamento"
-}
-
-abc_cpv_short_names = {
-    33: "appMed",
-    45: "lavori",
-    85: "servSani",
-    79: "servImpr"
-}
+#     # 3. contracts having a value 25 times higher than the median revenue of
+#     # business entity and more than 5 contracts (median)
+#     coef = 25
+#     coef_mask = (df.importo > coef * df.be_med_ann_revenue) & \
+#         (df.be_med_ann_n_contr > 5)
+#     df["outlier"] = df["outlier"] | coef_mask
+#     return df
 
 
-def save_abc_only(df):
-    for cpv, cpv_name in abc_cpv_short_names.items():
-        for procedure, procedure_name in abc_procedure_short_names.items():
-            mask = (df.cpv == cpv) & (df.id_award_procedure == procedure)
-            data = df[mask].copy()
-            data = data.drop(columns=["id_award_procedure"])
-            file_name = cpv_name + "_" + procedure_name + ".csv"
-            data.to_csv(path.join(OUTDIR, file_name),
-                        index_label="idx")
+# abc_procedure_short_names = {
+#     1: "aperta",
+#     26: "adesione",
+#     4: "negoziata",
+#     23: "affidamento"
+# }
+
+# abc_cpv_short_names = {
+#     33: "appMed",
+#     45: "lavori",
+#     85: "servSani",
+#     79: "servImpr"
+# }
 
 
-def save_award_procedure(df, procedure_id):
-    data = df[df["id_award_procedure"] == procedure_id]
-    # data = data.drop(columns=["id_scelta_contraente", "cpv"])
-    fname = path.join(OUTDIR, abc_procedure_short_names[procedure_id] + ".csv")
-    data.to_csv(fname, index_label="idx")
+# def save_abc_only(df):
+#     for cpv, cpv_name in abc_cpv_short_names.items():
+#         for procedure, procedure_name in abc_procedure_short_names.items():
+#             mask = (df.cpv == cpv) & (df.id_award_procedure == procedure)
+#             data = df[mask].copy()
+#             data = data.drop(columns=["id_award_procedure"])
+#             file_name = cpv_name + "_" + procedure_name + ".csv"
+#             data.to_csv(path.join(OUTDIR, file_name),
+#                         index_label="idx")
+
+
+# def save_award_procedure(df, procedure_id):
+#     data = df[df["id_award_procedure"] == procedure_id]
+#     # data = data.drop(columns=["id_scelta_contraente", "cpv"])
+#     fname = path.join(OUTDIR, abc_procedure_short_names[procedure_id] + ".csv")
+#     data.to_csv(fname, index_label="idx")
 
 
 def remove_infrequent_entities(df, N=10):
@@ -233,11 +233,11 @@ def remove_infrequent_entities(df, N=10):
     return df
 
 
-def main_award_procedures(df, proc_list=[1, 4, 23, 26]) -> pd.DataFrame:
-    mask = df["id_scelta_contraente"] == proc_list[0]
-    for proc in proc_list[:][1:]:
-        mask += df["id_scelta_contraente"] == proc
-    return df[mask]
+# def main_award_procedures(df, proc_list=[1, 4, 23, 26]) -> pd.DataFrame:
+#     mask = df["id_scelta_contraente"] == proc_list[0]
+#     for proc in proc_list[:][1:]:
+#         mask += df["id_scelta_contraente"] == proc
+#     return df[mask]
 
 
 # def global_dataset():
@@ -262,7 +262,6 @@ def main():
     # remove the resulting duplicates
     df = df[~df.duplicated()]
     df = feature_extraction(df)
-    # df = main_award_procedures(df) # only if analyze by a
     df = remove_infrequent_entities(df, N=10)
     # df = mark_outliers(df)
     # outliers_checked = pd.read_csv("output/checked_outliers.csv",
@@ -273,14 +272,12 @@ def main():
         "oggetto": "object",
         "data_inizio": "start_date",
         "id_scelta_contraente": "id_award_procedure"
-        })
+    })
     return df
 
 
 if __name__ == "__main__":
     df = main()
-    # df["object"] = df["object"].transform(applyQuotes)
-    # df = df[df["id_award_procedure"] == 1]
-    fname = path.join(OUTDIR, "mainset.csv")
-    df.to_csv(fname, index_label=False, index=False,
+    fname = path.join(OUTDIR, "contracts.csv")
+    df.to_csv(fname, index_label="index",
               quoting=csv.QUOTE_NONNUMERIC)

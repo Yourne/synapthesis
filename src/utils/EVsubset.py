@@ -6,7 +6,7 @@ import csv
 
 FNAME = "contracts.csv"
 INPUTDIR = "data"
-K = 2
+K = 3
 
 
 def remove_boxcox_exceptions(df: pd.DataFrame, entity: str) -> pd.DataFrame:
@@ -17,6 +17,9 @@ def remove_boxcox_exceptions(df: pd.DataFrame, entity: str) -> pd.DataFrame:
         except ValueError:
             exceptions.append(name)
             continue
+
+    print(f"boxcox exceptions: {len(exceptions)}")
+
     if len(exceptions) == 0:
         return df
     else:
@@ -45,10 +48,9 @@ def stdconfint(df: pd.DataFrame, entity: str, alpha=.05) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    df = pd.read_csv(os.path.join(INPUTDIR, FNAME))
+    df = pd.read_csv(os.path.join(INPUTDIR, FNAME), index_col="index")
     df["start_date"] = pd.to_datetime(df["start_date"])
 
-    # BE
     for entity in ["id_be", "id_pa"]:
         ent = entity.strip("id_")
 
@@ -59,14 +61,18 @@ if __name__ == "__main__":
         df[ent+"_amount"] = df["amount"].transform(IQRscale)
         df[ent+"_amount"] = df.groupby(entity)[ent+"_amount"].transform(boxcox)
 
-        # compute 3 * standard deviations
+        # compute k * standard deviations
         kstd = df.groupby(entity)[ent+"_amount"].std().rename(ent+"_kstd")
         kstd = K * kstd
         df = df.join(kstd, on=entity)
 
-        # compute the std 95 symmetric confidence interval
-        confint = df.groupby(entity).apply(lambda x: stdconfint(x, ent), )
-        df = df.join(confint.rename(ent+"_stdconfint"), on=entity)
+        # compute the number of won lots
+        nlots = df.groupby(entity).size().rename(ent+"_nlots")
+        df = df.join(nlots, on=entity)
+
+        # compute the std
+        std = df.groupby(entity)[ent+"_amount"].std().rename(ent+"_std")
+        df = df.join(std, on=entity)
 
         # compute the mean
         mean = df.groupby(entity)[ent+"_amount"].mean()
@@ -89,24 +95,32 @@ if __name__ == "__main__":
     # Chebishev inquality
     mask = np.abs(df["duration_scaled"] - mean) > kstd
     df["duration_probOut"] = mask
-    print(sum(df["duration_probOut"]))
-    print(sum(df["be_probOut"]))
-    print(sum(df["pa_probOut"]))
-    print(df.shape)
 
-    N = 201  # number of manually selected samples
-    frac = N / len(df)
-    subset = df.groupby(["id_award_procedure", df.start_date.dt.year],
-                        group_keys=False).apply(lambda x: x.sample(frac=frac,
-                                                random_state=42))
+    aperta = df[df["id_award_procedure"] == 1]
+    subset = aperta.groupby(
+        df.start_date.dt.year,
+        group_keys=False).apply(lambda x: x.sample(67, random_state=42))
+    # reduce to len(subset) = 200
+    subset = subset.drop([316235, 260944])  # chosen at random, one from year
+
+    # true outliers lot ids checked on the platform
+    subset = pd.concat([subset, aperta[aperta["id_lotto"] == 7531663]])
+    subset["outlier"] = False
+    subset.loc[subset["id_lotto"] == 7531663, "outlier"] = True
 
     # save as csv
-    features_to_csv = [
-        "id_lotto", "amount", "duration", "start_date", "id_award_procedure",
-        "id_pa", "uber_forma_giuridica", "id_be", "object",
-        "be_med_ann_revenue", "pa_med_ann_expenditure", "be_probOut",
-        "be_stdconfint", "pa_probOut", "pa_stdconfint", "duration_probOut"
+    features = [
+        "amount",
+        "be_med_ann_revenue",
+        # "be_probOut", "be_std", "be_nlots",
+        "pa_med_ann_expenditure",
+        # "pa_probOut", "pa_std", "pa_nlots",
+        "duration", "start_date",
+        # "duration_probOut",
+        "id_award_procedure", "id_pa", "id_be",
+        "object",
+        "id_lotto",
+        "outlier"
     ]
-    fname = os.path.join(INPUTDIR, "subset.csv")
-    subset[features_to_csv].to_csv(fname, index_label=False, index=False,
-                                   quoting=csv.QUOTE_NONNUMERIC)
+    fname = os.path.join(INPUTDIR, "subset_aperta.csv")
+    subset[features].to_csv(fname, quoting=csv.QUOTE_NONNUMERIC)
