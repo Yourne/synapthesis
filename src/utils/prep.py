@@ -221,7 +221,8 @@ def feature_extraction(df):
 def remove_infrequent_entities(df, N=10):
     """
     remove business entities and public authority with a number of issued
-    contracts lower than N. It depends on the dataset distribution
+    contracts lower than N in at least one year; if one year they won less than
+    N contracts, then they are removed. 
     """
     for agent in ["id_be", "id_pa"]:
         col_name = "min_nlots_" + agent

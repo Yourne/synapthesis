@@ -72,6 +72,6 @@ def main_subset():
 
 
 if __name__ == "__main__":
-    # out = main()
+    out = main()
     # out.to_csv("output/baseline.csv")
-    df = main_subset()
+    # df = main_subset()
