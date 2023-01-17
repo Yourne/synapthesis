@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 FNAME = "contracts.csv"  # do not use other files
-INPUTDIR = "data"
+INPUTDIR = "data10"
 
 
 def rule1(df: pd.DataFrame) -> pd.DataFrame:
@@ -14,8 +14,8 @@ def rule1(df: pd.DataFrame) -> pd.DataFrame:
     """
     mask = (df["amount"] > df["be_med_ann_revenue"]) & \
         (df["amount"] > df["pa_med_ann_expenditure"])
-    df = df[mask]
-    df["rule"] = 1
+    df = df[mask].copy()
+    df.loc[:, "rule"] = 1
     return df
 
 
@@ -29,7 +29,7 @@ def rule2(df: pd.DataFrame) -> pd.DataFrame:
     mask1 = (df["id_award_procedure"] == 23) & (df["duration"] > n_years * 365)
     mask2 = (df["id_award_procedure"] == 26) & (df["duration"] > n_years * 365)
     mask = mask1 | mask2
-    df = df[mask]
+    df = df[mask].copy()
     df["rule"] = 2
     return df
 
@@ -42,13 +42,13 @@ def rule3(df: pd.DataFrame) -> pd.DataFrame:
     """
     k = 25
     mask = df["amount"] > k * df["be_med_ann_revenue"]
-    df = df[mask]
+    df = df[mask].copy()
     df["rule"] = 3
     return df
 
 
 def main():
-    df = pd.read_csv(os.path.join(INPUTDIR, FNAME))
+    df = pd.read_csv(os.path.join(INPUTDIR, FNAME), index_col="index")
     df["start_date"] = pd.to_datetime(df["start_date"])
     out1 = rule1(df)
     out2 = rule2(df)
@@ -56,22 +56,26 @@ def main():
     return pd.concat([out1, out2, out3], axis=0)
 
 
-def main_subset():
-    df = pd.read_csv(os.path.join(INPUTDIR, "subset_aperta.csv"))
-    df["start_date"] = pd.to_datetime(df["start_date"])
-    # rule 1
-    rule1 = (df["amount"] > df["be_med_ann_revenue"]) & \
-        (df["amount"] > df["pa_med_ann_expenditure"])
-    # rule 3
-    k = 25
-    rule3 = df["amount"] > k * df["be_med_ann_revenue"]
+# def main_subset():
+#     df = pd.read_csv(os.path.join(INPUTDIR, "subset_aperta.csv"))
+#     df["start_date"] = pd.to_datetime(df["start_date"])
+#     # rule 1
+#     rule1 = (df["amount"] > df["be_med_ann_revenue"]) & \
+#         (df["amount"] > df["pa_med_ann_expenditure"])
+#     # rule 3
+#     k = 25
+#     rule3 = df["amount"] > k * df["be_med_ann_revenue"]
 
-    df["pred"] = False
-    df[rule1 | rule3] = True
-    return df
+#     df["pred"] = False
+#     df[rule1 | rule3] = True
+#     return df
 
 
 if __name__ == "__main__":
-    out = main()
+    df = pd.read_csv(os.path.join(INPUTDIR, FNAME), index_col="index")
+    df["start_date"] = pd.to_datetime(df["start_date"])
+    df_outliers = main()
+    print(df.groupby("id_award_procedure").size())
+    print(df_outliers.groupby("id_award_procedure").size())
     # out.to_csv("output/baseline.csv")
     # df = main_subset()
