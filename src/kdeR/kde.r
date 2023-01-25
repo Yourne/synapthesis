@@ -17,6 +17,7 @@ boxcox.transform <- function(x, lambda) {
 
 #### LOAD DATA SETS ####
 df <- read.table("data/aperta.csv", header = TRUE, sep = ",")
+# df <- read.table("data10/contracts.csv", header = TRUE, sep = ",", row.names = "index")
 lot_id <- df$id_lotto
 # subset features
 df <- subset(df, select = c("amount","be_med_ann_revenue", 
@@ -29,7 +30,7 @@ sample <- subset(sample, select = c("amount","be_med_ann_revenue",
                                     "pa_med_ann_expenditure", "duration"))
 
 #### PREPROCESS ####
-# apparently, there are a few duplicates
+# apparently, there are a few duplicates 
 lot_id <- lot_id[!duplicated(df)]
 df <- unique(df)
 
@@ -93,7 +94,7 @@ print("Hns")
 fhat <- ks::kde(x = df, H = Hns, gridsize = rep(bin.size, length(df)))
 preds <- predict(fhat, x=sample)
 roc.Hns <- pROC::roc(y~preds, direction = "<")
-1 - pROC::auc(roc.Hns)
+pROC::auc(roc.Hns)
 pROC::coords(roc.Hns, x="best")
 pROC::plot.roc(roc.Hns)
 
@@ -101,16 +102,18 @@ pROC::plot.roc(roc.Hns)
 print("Hpi")
 fhat <- ks::kde(x = df, H = Hpi, gridsize = rep(bin.size, length(df)))
 preds <- predict(fhat, x=sample)
-roc.Hpi <- pROC::roc(y~preds, direction = "<")
-1 - pROC::auc(roc.Hpi)
-pROC::coords(roc.Hpi, x="best")
-pROC::plot.roc(roc.Hpi)
+# roc.Hpi <- pROC::roc(y~preds, direction = "<")
+# pROC::auc(roc.Hpi)
+# pROC::coords(roc.Hpi, x="best")
+# pROC::plot.roc(roc.Hpi)
+roc.Hpi <- ROCit::rocit(preds, class=y, )
+plot(roc.Hpi)
 
 # least squares cross validation bandwidth
 fhat <- ks::kde(x = df, H = Hlscv, gridsize = rep(bin.size, length(df)))
 preds <- predict(fhat, x=sample)
 roc.Hlscv <- pROC::roc(y~preds, direction = "<")
-1 - pROC::auc(roc.Hlscv)
+pROC::auc(roc.Hlscv)
 pROC::coords(roc.Hlscv, x="best")
 pROC::plot.roc(roc.Hlscv)
 
@@ -127,7 +130,7 @@ out <- data.frame(lot_id, predict(fhat, x = df))
 # }
 
 # eval.points decides where to evaluate fhat
-# binned = FALSE imposes to use non-evenly spaced eval .points
+# binned = FALSE imposes to use non-evenly spaced eval.points
 # binned = TRUE (default) interpolates eval.points to have estimates of fhat
 # fhat <- ks::kde(x = dt, H = Hns, eval.point=dt, binned=FALSE)
 

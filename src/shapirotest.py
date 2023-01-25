@@ -2,6 +2,7 @@
 import pandas as pd
 from scipy import stats
 import numpy as np
+import warnings
 
 
 def shapiro_wilk_test(s: pd.Series) -> float:
@@ -20,75 +21,91 @@ def boxcox(s: pd.Series) -> pd.Series:
         return s
 
 
+def normalize(x: pd.Series, offset=1) -> pd.Series:
+    if np.allclose([x.iloc[0]] * len(x), x):
+        warnings.warn("All the values in the series are equal")
+        return [1.5] * len(x)
+    return x / (max(x) - min(x)) + 1
+
+
 input_file = "../data10/contracts.csv"
 output_path = "../data10/"
 
 df = pd.read_csv(input_file, index_col="index")
+df = df.replace({"duration": 0}, 1)
 
 features = ["id_be", "id_pa", "amount", "id_award_procedure", "duration"]
 
 df = df[features]
 
-grouped = df.groupby("id_be").amount
+# ent = "pa"
+# grouped = df.groupby("id_" + ent).duration
+# df[ent + "_boxcoxed_duration"] = grouped.transform(boxcox)
+# grouped = df.groupby("id_"+ent)[ent + "_boxcoxed_duration"]
 # pvalues = grouped.agg(shapiro_wilk_test)
 
-# print(sum(pvalues > 0.05), sum(pvalues > 0.05) / len(pvalues))
-# be sum(pvalues < 0.05) : 10305  # I reject most of the H_0
 
-df["boxcox_transformed_amount"] = grouped.transform(boxcox)
+for party in ["be", "pa"]:
+    for feature in ["amount", "duration"]:
+        grouped = df.groupby("id_"+party)[feature]
+        df[party+"_boxcoxed_" +
+            feature] = grouped.transform(normalize).transform(boxcox)
 
-for contracting_party in ["id_be", "id_pa"]:
+        grouped = df.groupby(
+            "id_"+party)[party+"_boxcoxed_"+feature]
+        pvalues = grouped.agg(shapiro_wilk_test)
+        normally_distributed = (pvalues > 0.05).rename(
+            party + "_" + feature + "_normally_distributed")
 
-    grouped = df.groupby(contracting_party).boxcox_transformed_amount
+        print(f"{party}, {feature}")
+        print(sum(pvalues > 0.05), sum(
+            pvalues > 0.05) / len(pvalues) * 100, len(pvalues))
 
-    pvalues = grouped.agg(shapiro_wilk_test)
-    normally_distributed = (pvalues > 0.05).rename(
-        contracting_party[3:] + "_normally_distributed")
+        mean = grouped.mean().rename(party + "_" + feature + "_mean")
+        std = grouped.std().rename(party + "_" + feature + "_std")
 
-    print(f"CONTRACTING PARTY {contracting_party}")
-    print(sum(pvalues > 0.05), sum(pvalues > 0.05) / len(pvalues))
+        distribution_parameters = pd.concat(
+            [mean, std, normally_distributed], axis=1)
 
-    mean = grouped.mean().rename(contracting_party[3:] + "_mean")
-    std = grouped.std().rename(contracting_party[3:] + "_std")
+        df = df.join(distribution_parameters, on="id_" + party)
 
-    distribution_parameters = pd.concat(
-        [mean, std, normally_distributed], axis=1)
+        # if normally distribtued
+        table = df[df[party+"_" + feature + "_normally_distributed"] == True]
+        resTrue = np.abs(table[party+"_boxcoxed_"+feature] -
+                         table[party+"_" + feature + "_mean"]) > 3 * table[party + "_" + feature + "_std"]
 
-    df = df.join(distribution_parameters, on=contracting_party)
+        # else
+        table = df[df[party+"_" + feature + "_normally_distributed"] == False]
+        if feature == "duration":
+            k = 10
+        else:
+            k = 20
+        resFalse = np.abs(table[party+"_boxcoxed_"+feature] -
+                          table[party+"_" + feature + "_mean"]) > k * table[party + "_" + feature + "_std"]
 
-    # if normally distribtued
-    table = df[df[contracting_party[3:]+"_normally_distributed"] == True]
-    resTrue = np.abs(table.boxcox_transformed_amount -
-                     table[contracting_party[3:]+"_mean"]) > 3 * table[contracting_party[3:] + "_std"]
+        extreme_flag = pd.concat([resTrue, resFalse]).sort_index()
 
-    # else
-    table = df[df[contracting_party[3:]+"_normally_distributed"] == False]
-    resFalse = np.abs(table.boxcox_transformed_amount -
-                      table[contracting_party[3:]+"_mean"]) > 10 * table[contracting_party[3:] + "_std"]
-
-    extreme_flag = pd.concat([resTrue, resFalse]).sort_index()
-
-    extreme_flag = extreme_flag.rename(
-        contracting_party[3:] + "_amount_extreme")
-    extreme_flag.to_csv(
-        output_path + contracting_party[3:] + "_amount_extreme.csv", index_label="index")
+        extreme_flag = extreme_flag.rename(
+            party + "_" + feature + "_extreme")
+        extreme_flag.to_csv(
+            output_path + party + "_" + feature + "_extreme.csv", index_label="index")
 
 # DURATION
-df = df.replace({"duration": 0}, 1)
-grouped = df.groupby("id_award_procedure").duration
-df["boxcox_transformed_duration"] = grouped.transform(boxcox)
+# df = df.replace({"duration": 0}, 1)
+# grouped = df.groupby("id_award_procedure").duration
+# df["boxcox_transformed_duration"] = grouped.transform(boxcox)
 
-grouped = df.groupby("id_award_procedure").boxcox_transformed_duration
-pvalues = grouped.agg(shapiro_wilk_test)
-print(sum(pvalues > 0.05), sum(pvalues > 0.05) / len(pvalues))
-# the only normally distributed are procedure 30, 31, 33, none of our interest
+# grouped = df.groupby("id_award_procedure").boxcox_transformed_duration
+# pvalues = grouped.agg(shapiro_wilk_test)
+# print(sum(pvalues > 0.05), sum(pvalues > 0.05) / len(pvalues))
+# # the only normally distributed are procedure 30, 31, 33, none of our interest
 
-mean = grouped.mean().rename("duration_mean")
-std = grouped.std().rename("duration_std")
-duration_parameters = pd.concat([mean, std], axis=1)
-df = df.join(duration_parameters, on="id_award_procedure")
-extreme_duration_flag = np.abs(
-    df.boxcox_transformed_duration - df.duration_mean) > 10 * df.duration_std
-extreme_duration_flag = extreme_duration_flag.rename("duration_extreme")
-extreme_duration_flag.to_csv(
-    output_path + "duration_extreme.csv", index_label="index")
+# mean = grouped.mean().rename("duration_mean")
+# std = grouped.std().rename("duration_std")
+# duration_parameters = pd.concat([mean, std], axis=1)
+# df = df.join(duration_parameters, on="id_award_procedure")
+# extreme_duration_flag = np.abs(
+#     df.boxcox_transformed_duration - df.duration_mean) > 10 * df.duration_std
+# extreme_duration_flag = extreme_duration_flag.rename("duration_extreme")
+# extreme_duration_flag.to_csv(
+#     output_path + "duration_extreme.csv", index_label="index")

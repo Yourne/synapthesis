@@ -10,8 +10,11 @@ class GaussianMixtureEstimator:
     def __init__(self) -> None:
         # best model hyper params
         self.model = GaussianMixture(n_components=50, covariance_type="diag")
-        self.features = ["amount", "pa_med_ann_expenditure",
-                         "be_med_ann_revenue", "duration"]
+        self.features = ["be_amount", "pa_amount",
+                         "be_duration", "pa_duration",
+                         "be_med_ann_revenue", "pa_med_ann_expenditure"
+                         "be_amount_std", "pa_amount_std"
+                         ]
         self.scaler = RobustScaler(with_centering=False)
         self.bic = list()
         self.n_components_range = range(1, 60)
