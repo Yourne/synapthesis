@@ -145,7 +145,8 @@ df = pd.concat([df[processed_features], df[outlier_features],
 df_open = df[df.id_award_procedure == 1]
 df_open = df_open.drop(columns=["id_award_procedure"])
 rng = np.random.default_rng(seed=1)
-test_idx = rng.choice(df_open.index.values, size=round(len(df_open)*.3))
+test_idx = rng.choice(df_open.index.values, size=round(len(df_open)*.3),
+                      replace=False)
 (df_open.loc[test_idx, outlier_features] == -1).sum()
 train_idx = df_open.index.difference(test_idx)
 
