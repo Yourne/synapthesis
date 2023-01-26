@@ -59,7 +59,7 @@ X_test = X_test[features]
 # performa meglio con più features
 print("starting optimization")
 start = time.time()
-model.opt_params(X_train.values)
+model.opt_params(X_train.values)  # 107 s
 print(f"optimization elapsed {time.time() - start}")
 print("best model")
 print(model.model.__dict__)
