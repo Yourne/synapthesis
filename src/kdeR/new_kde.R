@@ -18,6 +18,11 @@ X_test <- read.csv("data10/train_test_open_full/X_test.csv")
 y_train <- read.csv("data10/train_test_open_full/y_train.csv")
 y_test <- read.csv("data10/train_test_open_full/y_test.csv")
 
+X_train <- read.csv("data10/train_test_open/X_train.csv")
+X_test <- read.csv("data10/train_test_open/X_test.csv")
+y_train <- read.csv("data10/train_test_open/y_train.csv")
+y_test <- read.csv("data10/train_test_open/y_test.csv")
+
 # select most relevant features
 features <- c("be_amount", "pa_amount", "be_duration", "pa_duration")
 X_train <- X_train[, features]

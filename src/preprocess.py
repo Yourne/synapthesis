@@ -10,16 +10,24 @@ import pandas as pd
 from scipy import stats
 import numpy as np
 import warnings
+from sklearn.decomposition import PCA
 
 
-def normalize(x: pd.Series, offset=1) -> pd.Series:
+def normalize(x: pd.Series, offset: float = 1) -> pd.Series:
     if np.allclose([x.iloc[0]] * len(x), x):
         warnings.warn("All the values in the series are equal")
-        return [1.5] * len(x)
-    return x / (max(x) - min(x)) + 1
+        return [offset + .5] * len(x)
+    return x / (max(x) - min(x)) + offset
 
 
 def boxcox(s: pd.Series) -> pd.Series:
+    # se faccio sta cosa pd.transform dà "Series not transformed"
+    # if np.allclose([s.iloc[0]] * len(s), s):
+    #     warnings.warn("All the values in the series are equal")
+    #     return s
+    # else:
+    #     transformed_series, _ = stats.boxcox(s)
+    #     return transformed_series
     try:
         transformed_series, _ = stats.boxcox(s)
         return transformed_series
@@ -31,7 +39,7 @@ def sample_skewness(s: pd.Series) -> float:
     n = len(s)
     # second sample moment
     m2 = sum((s - s.mean()) ** 2) / n
-    if m2 == 0:
+    if np.isclose(m2, 0):
         return 0  # each contract has the same value
     # third sample moment
     m3 = sum((s - s.mean()) ** 3) / n
@@ -46,7 +54,7 @@ def sample_kurtosis(s: pd.Series) -> float:
     n = len(s)
     # second sample moment
     m2 = sum((s - s.mean()) ** 2) / n
-    if m2 == 0:
+    if np.isclose(m2, 0):
         return 0  # each contract has the same value
     # forth sample moment
     m4 = sum((s - s.mean()) ** 4) / n
@@ -90,9 +98,18 @@ def encode_labels(df: pd.DataFrame, column: str) -> pd.DataFrame:
     return df.replace({column: labels_to_integer})
 
 
+def shapiro_wilk_test(s: pd.Series) -> float:
+    try:
+        _, pvalue = stats.shapiro(s)
+        return pvalue
+    except ValueError:
+        return 0
+
+
 input_file = "../data10/contracts.csv"
 df = pd.read_csv(input_file, index_col="index")
 df["start_date"] = pd.to_datetime(df["start_date"])
+# df = df.replace({"duration": 0}, 1)
 
 categorical_features = ['id_lsf', 'id_forma_giuridica',
                         'uber_forma_giuridica', 'cpv', 'id_award_procedure']
@@ -106,8 +123,14 @@ df = df[features_to_process]
 
 for party in ["be", "pa"]:
     for feature in ["amount", "duration"]:
+        print()
+        print(party.upper(), feature.upper())
         grouped = df.groupby("id_"+party)[feature]
-        df[party+"_"+feature] = grouped.transform(normalize).transform(boxcox)
+        df[party+"_"+feature] = grouped.transform(
+            normalize).transform(boxcox).transform(normalize)
+        # pvalues = df.groupby(
+        #     "id_"+party)[party+"_"+feature].agg(shapiro_wilk_test)
+        # print(party, feature, sum(pvalues > 0.05) / len(pvalues))
         df = compute_moments(df, party+"_"+feature, party)
         if feature == "amount":
             df = extract_median_yearly_revenue(df, party)
@@ -119,10 +142,8 @@ rule_amount = pd.read_csv("../data10/rule_amount.csv").squeeze()
 rule_duration = pd.read_csv("../data10/rule_duration.csv").squeeze()
 extreme_amount = pd.read_csv("../data10/extreme_amount.csv").squeeze()
 extreme_duration = pd.read_csv("../data10/extreme_duration.csv").squeeze()
-df["rule_amount"] = rule_amount
-df["rule_duration"] = rule_duration
-df["extreme_amount"] = extreme_amount
-df["extreme_duration"] = extreme_duration
+y = pd.concat([rule_amount, rule_duration,
+              extreme_amount, extreme_duration], axis=1)
 
 processed_features = ['be_duration', 'pa_duration',
                       "be_duration_mean", "pa_duration_mean",
@@ -137,24 +158,35 @@ processed_features = ['be_duration', 'pa_duration',
                       "be_med_ann_revenue", "pa_med_ann_expenditure",
                       'n_winners']
 
-
-df = pd.concat([df[processed_features], df[outlier_features],
-               df_categorical[categorical_features]], axis=1)
+df = df[processed_features]
+df = pd.concat([df, df_categorical], axis=1)
 # df[features].to_csv("../data10/processed_data.csv", index_label=False)
 
+pca = PCA()
+X_transformed = pca.fit_transform(df)
+X_transformed = pd.DataFrame(X_transformed, index=df.index)
+
 df_open = df[df.id_award_procedure == 1]
-df_open = df_open.drop(columns=["id_award_procedure"])
+# df_open = df_open.drop(columns=["id_award_procedure"])
 rng = np.random.default_rng(seed=1)
 test_idx = rng.choice(df_open.index.values, size=round(len(df_open)*.3),
                       replace=False)
-(df_open.loc[test_idx, outlier_features] == -1).sum()
+(y.loc[test_idx, :] == -1).sum()
 train_idx = df_open.index.difference(test_idx)
 
-outpath = "../data10/train_test_open_full/"
-df_open.loc[train_idx, :].to_csv(
+
+outpath = "../data10/train_test_open_PCA/"
+# if PCA
+X_transformed.loc[train_idx, :].to_csv(
     outpath+"X_train.csv", index_label=False)
-df_open.loc[test_idx, :].to_csv(outpath+"X_test.csv", index_label=False)
-df_open.loc[train_idx, outlier_features].to_csv(
-    outpath+"y_train.csv", index_label=False)
-df_open.loc[test_idx, outlier_features].to_csv(
-    outpath+"y_test.csv", index_label=False)
+X_transformed.loc[test_idx, :].to_csv(outpath+"X_test.csv", index_label=False)
+y.loc[train_idx, :].to_csv(outpath+"y_train.csv", index_label=False)
+y.loc[test_idx, :].to_csv(outpath+"y_test.csv", index_label=False)
+# if not PCA
+# df_open.loc[train_idx, :].to_csv(
+#     outpath+"X_train.csv", index_label=False)
+# df_open.loc[test_idx, :].to_csv(outpath+"X_test.csv", index_label=False)
+# y.loc[train_idx, :].to_csv(
+#     outpath+"y_train.csv", index_label=False)
+# y.loc[test_idx, :].to_csv(
+#     outpath+"y_test.csv", index_label=False)
