@@ -5,6 +5,7 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 import time
+from datetime import datetime
 
 
 from sklearn.metrics import roc_curve, roc_auc_score
@@ -23,10 +24,12 @@ model = getattr(module, config["class"])()
 
 
 # laod training set and validation set
-X_train = pd.read_csv("../data10/train_test_open/X_train.csv")
-X_test = pd.read_csv("../data10/train_test_open/X_test.csv")
-y_test = pd.read_csv("../data10/train_test_open/y_test.csv")
-y_train = pd.read_csv("../data10/train_test_open/y_train.csv")
+# old: train test open : norm boxcox
+# new: train_test_open_full: norm boxbox norm
+X_train = pd.read_csv("../data10/train_test_open_full/X_train.csv")
+X_test = pd.read_csv("../data10/train_test_open_full/X_test.csv")
+y_test = pd.read_csv("../data10/train_test_open_full/y_test.csv")
+y_train = pd.read_csv("../data10/train_test_open_full/y_train.csv")
 
 features = ['be_duration', 'pa_duration',
             "be_duration_mean", "pa_duration_mean",
@@ -71,19 +74,53 @@ plt.legend(lines, ["spherical", "tied", "diag", "full"])
 plt.ylabel("Bayesian information criterion")
 plt.xlabel("number of components")
 plt.show()
+plt.savefig("..images/gmm_bic60")
 
 preds = model.test(X_test.values)
-# preds = model.test(X_train.values)
+
+
+def record_experiment(preds: np.array, X_test: pd.DataFrame, model: str):
+    date = datetime.now().isoformat()
+    file_path = "../output/" + date + "_" + model + ".csv"
+    preds_series = pd.Series(preds, index=X_test.index, name="prediction")
+    preds_series.to_csv(file_path)
+
+
+record_experiment(preds, X_test, "gmm")
+
+
+# cannot visualize as it has 23 dims
+# def draw_contuours(X: pd.DataFrame, y: pd.DataFrame, model):
+
+#     xx = np.linspace(0, 1)
+#     yy = np.linspace(0, 1)
+
+#     YY, XX = np.meshgrid(xx, yy)
+#     xy = np.vstack([XX.ravel(), YY.ravel()]).T
+
+#     Z = model.test(xy).reshape(XX.shape)
+
+#     CS = plt.contour(XX, YY, Z)
+#     plt.clabel(CS)
+
+#     for i in range(4):
+#         X_outliers = X[y.iloc[:, i] == -1]
+#         plt.scatter(X_outliers.iloc[:, 0],
+#                     X_outliers.iloc[:, 1], label=y.columns[i])
+#     plt.legend(title="Type of outliers")
+
+# draw_contuours(X_test, y_test, model)
+
 
 for outlier_label in ["extreme_amount", "extreme_duration", "rule_amount"]:
     fpr, tpr, thr = roc_curve(y_test[outlier_label], preds)
     auc = roc_auc_score(y_test[outlier_label], preds)
     # fpr, tpr, thr = roc_curve(y_train[outlier_label], preds)
-    plt.plot(fpr, tpr, label=outlier_label)
-    print(features)
+    # plt.plot(fpr, tpr, label=outlier_label)
     print(f"{outlier_label} auc {auc}")
 plt.plot([0, 1], [0, 1], color="grey", zorder=1)
 plt.grid()
 plt.legend()
 plt.xlabel("False Alarm Rate")  # "False Positive Rate"
 plt.ylabel("Hit Rate")  # True Positive Rate
+plt.savefig("../images/roc/gmm/normed-gmm")

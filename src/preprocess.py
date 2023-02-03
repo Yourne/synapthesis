@@ -17,7 +17,7 @@ def normalize(x: pd.Series, offset: float = 1) -> pd.Series:
     if np.allclose([x.iloc[0]] * len(x), x):
         warnings.warn("All the values in the series are equal")
         return [offset + .5] * len(x)
-    return x / (max(x) - min(x)) + offset
+    return (x - min(x)) / (max(x) - min(x)) + offset
 
 
 def boxcox(s: pd.Series) -> pd.Series:
@@ -127,7 +127,7 @@ for party in ["be", "pa"]:
         print(party.upper(), feature.upper())
         grouped = df.groupby("id_"+party)[feature]
         df[party+"_"+feature] = grouped.transform(
-            normalize).transform(boxcox).transform(normalize)
+            normalize).transform(boxcox).transform(normalize, offset=0)
         # pvalues = df.groupby(
         #     "id_"+party)[party+"_"+feature].agg(shapiro_wilk_test)
         # print(party, feature, sum(pvalues > 0.05) / len(pvalues))
@@ -160,33 +160,34 @@ processed_features = ['be_duration', 'pa_duration',
 
 df = df[processed_features]
 df = pd.concat([df, df_categorical], axis=1)
-# df[features].to_csv("../data10/processed_data.csv", index_label=False)
 
-pca = PCA()
-X_transformed = pca.fit_transform(df)
-X_transformed = pd.DataFrame(X_transformed, index=df.index)
+# pca = PCA()
+# X_transformed = pca.fit_transform(df)
+# X_transformed = pd.DataFrame(X_transformed, index=df.index)
 
 df_open = df[df.id_award_procedure == 1]
-# df_open = df_open.drop(columns=["id_award_procedure"])
+df_open = df_open.drop(columns=["id_award_procedure"])
 rng = np.random.default_rng(seed=1)
 test_idx = rng.choice(df_open.index.values, size=round(len(df_open)*.3),
                       replace=False)
 (y.loc[test_idx, :] == -1).sum()
 train_idx = df_open.index.difference(test_idx)
 
-
-outpath = "../data10/train_test_open_PCA/"
 # if PCA
-X_transformed.loc[train_idx, :].to_csv(
-    outpath+"X_train.csv", index_label=False)
-X_transformed.loc[test_idx, :].to_csv(outpath+"X_test.csv", index_label=False)
-y.loc[train_idx, :].to_csv(outpath+"y_train.csv", index_label=False)
-y.loc[test_idx, :].to_csv(outpath+"y_test.csv", index_label=False)
-# if not PCA
-# df_open.loc[train_idx, :].to_csv(
+# outpath = "../data10/train_test_open_PCA/"
+
+# X_transformed.loc[train_idx, :].to_csv(
 #     outpath+"X_train.csv", index_label=False)
-# df_open.loc[test_idx, :].to_csv(outpath+"X_test.csv", index_label=False)
-# y.loc[train_idx, :].to_csv(
-#     outpath+"y_train.csv", index_label=False)
-# y.loc[test_idx, :].to_csv(
-#     outpath+"y_test.csv", index_label=False)
+# X_transformed.loc[test_idx, :].to_csv(outpath+"X_test.csv", index_label=False)
+# y.loc[train_idx, :].to_csv(outpath+"y_train.csv", index_label=False)
+# y.loc[test_idx, :].to_csv(outpath+"y_test.csv", index_label=False)
+
+# if not PCA
+outpath = "../data10/train_test_open_full/"
+df_open.loc[train_idx, :].to_csv(
+    outpath+"X_train.csv", index_label=False)
+df_open.loc[test_idx, :].to_csv(outpath+"X_test.csv", index_label=False)
+y.loc[train_idx, :].to_csv(
+    outpath+"y_train.csv", index_label=False)
+y.loc[test_idx, :].to_csv(
+    outpath+"y_test.csv", index_label=False)

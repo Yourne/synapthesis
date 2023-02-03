@@ -9,9 +9,25 @@ Created on Wed Jan 25 18:27:23 2023
 import pandas as pd
 import matplotlib.pyplot as plt
 import time
+from datetime import datetime
+import numpy as np
 
 from sklearn.svm import OneClassSVM
 from sklearn.metrics import roc_curve, roc_auc_score
+
+
+def record_experiment(preds: np.array, distance: np.array, X_test: pd.DataFrame, model: str):
+    date = datetime.now().isoformat()
+    file_path = "../output/" + date + "_" + model + ".csv"
+    preds_series = pd.Series(preds, index=X_test.index, name="prediction")
+    distance_series = pd.Series(distance, index=X_test.index, name="distance")
+    preds_distance_df = pd.concat([preds_series, distance_series], axis=1)
+    preds_distance_df = preds_distance_df.sort_values("distance")
+    preds_distance_df.to_csv(file_path)
+
+
+def normalize(X: pd.DataFrame) -> pd.array:
+    return (X - X.min()) / (X.max() - X.min())
 
 
 # laod training set and validation set
@@ -38,6 +54,12 @@ y_train = pd.read_csv("../data10/train_test_open_PCA/y_train.csv")
 # X_train = X_train[features]
 # X_test = X_test[features]
 
+# just for PCA
+X_train = X_train.iloc[:, [0, 1]]  # more 98% of explained variance
+X_test = X_test.iloc[:, [0, 1]]
+X_train = normalize(X_train)
+X_test = normalize(X_test)
+
 outliers_fraction = (y_train == -1).sum().mean() / len(y_train)
 model = OneClassSVM(nu=outliers_fraction)
 
@@ -47,17 +69,44 @@ model.fit(X_train)
 print(f"optimization elapsed {time.time() - start}")
 
 preds = model.predict(X_test)
-# preds = model.test(X_train.values)
+distance = model.decision_function(X_test)
 
-for outlier_label in ["extreme_amount", "extreme_duration", "rule_amount"]:
-    fpr, tpr, thr = roc_curve(y_test[outlier_label], preds)
-    auc = roc_auc_score(y_test[outlier_label], preds)
-    # fpr, tpr, thr = roc_curve(y_train[outlier_label], preds)
-    plt.plot(fpr, tpr, label=outlier_label)
-    # print(features)
-    print(f"{outlier_label} auc {round(auc*100, 2)}")
-plt.plot([0, 1], [0, 1], color="grey", zorder=1)
-plt.grid()
-plt.legend()
-plt.xlabel("False Alarm Rate")  # "False Positive Rate"
-plt.ylabel("Hit Rate")  # True Positive Rate
+# record_experiment(preds, distance, X_test, model="oc-svm")
+
+
+def draw_contuours(X: pd.DataFrame, y: pd.DataFrame, model):
+
+    xx = np.linspace(0, 1)
+    yy = np.linspace(0, 1)
+
+    YY, XX = np.meshgrid(xx, yy)
+    xy = np.vstack([XX.ravel(), YY.ravel()]).T
+
+    Z = model.decision_function(xy).reshape(XX.shape)
+
+    CS = plt.contour(XX, YY, Z)
+    plt.clabel(CS)
+
+    for i in range(4):
+        X_outliers = X[y.iloc[:, i] == -1]
+        plt.scatter(X_outliers.iloc[:, 0],
+                    X_outliers.iloc[:, 1], label=y.columns[i])
+    plt.legend(title="Type of outliers")
+
+
+draw_contuours(X_test, y_test, model)
+plt.savefig("../images/ocsvm")
+
+
+# for outlier_label in ["extreme_amount", "extreme_duration", "rule_amount"]:
+#     fpr, tpr, thr = roc_curve(y_test[outlier_label], preds)
+#     auc = roc_auc_score(y_test[outlier_label], preds)
+#     # fpr, tpr, thr = roc_curve(y_train[outlier_label], preds)
+#     plt.plot(fpr, tpr, label=outlier_label)
+#     # print(features)
+#     print(f"{outlier_label} auc {round(auc*100, 2)}")
+# plt.plot([0, 1], [0, 1], color="grey", zorder=1)
+# plt.grid()
+# plt.legend()
+# plt.xlabel("False Alarm Rate")  # "False Positive Rate"
+# plt.ylabel("Hit Rate")  # True Positive Rate

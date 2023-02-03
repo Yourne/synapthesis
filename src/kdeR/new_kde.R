@@ -18,10 +18,10 @@ X_test <- read.csv("data10/train_test_open_full/X_test.csv")
 y_train <- read.csv("data10/train_test_open_full/y_train.csv")
 y_test <- read.csv("data10/train_test_open_full/y_test.csv")
 
-X_train <- read.csv("data10/train_test_open/X_train.csv")
-X_test <- read.csv("data10/train_test_open/X_test.csv")
-y_train <- read.csv("data10/train_test_open/y_train.csv")
-y_test <- read.csv("data10/train_test_open/y_test.csv")
+# X_train <- read.csv("data10/train_test_open/X_train.csv")
+# X_test <- read.csv("data10/train_test_open/X_test.csv")
+# y_train <- read.csv("data10/train_test_open/y_train.csv")
+# y_test <- read.csv("data10/train_test_open/y_test.csv")
 
 # select most relevant features
 features <- c("be_amount", "pa_amount", "be_duration", "pa_duration")
@@ -39,16 +39,16 @@ Hns <- ks::Hns(x = X_train)
 # plug-in bandwidth
 bin.size <- 15 # it should equal the default
 start.time <- Sys.time()
-Hpi <- ks::Hpi(x = X_train, nstage = 2) # 2.66 min
+Hpi <- ks::Hpi(x = X_train, nstage = 2) # 2.66 mins
 stop.time <- Sys.time()
 time.elapsed <- stop.time - start.time
 print(time.elapsed)
 
 # Least Squares cross validation bandwidth
 start.time <- Sys.time()
-Hlscv <- ks::Hlscv(x = X_train)
+Hlscv <- ks::Hlscv(x = X_train) # 4.39 mins
 stop.time <- Sys.time()
-time.elapsed <- stop.time - start.time
+time.elapsed <- stop.time - start.time 
 print(time.elapsed)
 
 #### MODEL EVALUATIONS ####
@@ -69,5 +69,5 @@ preds.Hlscv <- predict(fhat.Hlscv, x=X_test)
 auc.Hlscv <- plot_roc_curves(cbind(preds.Hlscv, preds.Hlscv, preds.Hlscv), y_test)
 
 #### output to file ####
-out <- data.frame(predict(fhat, x = aperta), row.names = row.names(aperta))
-write.csv(out, file=paste(Sys.time(), "Hns_aperta.csv", sep="_"))
+out <- data.frame(predict(fhat.Hpi, x = X_test), row.names = row.names(X_test))
+write.csv(out, file=paste(Sys.time(), "Hpi_aperta.csv", sep="_"))
