@@ -1,4 +1,5 @@
 synData28June/
+.synapthesis.Rproj
 .ipynb_checkpoints/
 .vscode/
 .spyproject/
@@ -8,7 +9,13 @@ datasets/
 output/
 fourier_transform_example/
 data/
+data10/
+data20/
 dataout/
+data_old/
+.RData
+.DS_Store/
+.Rhistory
 images/
 miscellanea/
 histfigures/
