@@ -69,5 +69,18 @@ preds.Hlscv <- predict(fhat.Hlscv, x=X_test)
 auc.Hlscv <- plot_roc_curves(cbind(preds.Hlscv, preds.Hlscv, preds.Hlscv), y_test)
 
 #### output to file ####
-out <- data.frame(predict(fhat.Hpi, x = X_test), row.names = row.names(X_test))
-write.csv(out, file=paste(Sys.time(), "Hpi_aperta.csv", sep="_"))
+out <- data.frame(predict(fhat.Hns, x = X_test), row.names = row.names(X_test))
+write.csv(out, file=paste(Sys.time(), "Hns_aperta.csv", sep="_"))
+
+#### plot best threshold
+roc.preds <- ROCR::prediction(preds.Hns, y_test$rule_amount)
+roc.perf <- ROCR::performance(roc.preds, "tpr", "fpr")
+plot(roc.perf, colorize=TRUE, print.cutoffs.at=1.4)
+
+y.pred <- preds.Hns < 1.45
+sum(y.pred) / length(y.pred)
+y.pred[y.pred == TRUE] <- -1
+y.pred[y.pred == FALSE] <- 1
+library(caret)
+caret::confusionMatrix(table(y.pred, y_test$rule_amount))
+

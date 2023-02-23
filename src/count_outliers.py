@@ -31,41 +31,41 @@ df = pd.concat([df, rule1, rule2, rule3, be_amount_extreme,
                pa_amount_extreme, be_duration_extreme, pa_duration_extreme], axis=1)
 # confusion_matrix(rule1, be_amount_extreme)  # C_ij = C_00, etc
 
-aperta = df[df["id_award_procedure"] == 1]
 
 rule_amount = df.rule1 | df.rule3
-amount_extreme = df.be_amount_extreme | df.pa_amount_extreme
-duration_extreme = df.be_duration_extreme | df.be_amount_extreme
+extreme_amount = df.be_amount_extreme | df.pa_amount_extreme
+extreme_duration = df.be_duration_extreme | df.be_amount_extreme
 
+n_pa = len(set(df.id_pa))
+n_be = len(set(df.id_be))
 
-# print(sum(rule_amount))
-# print(sum(amount_extreme))
-# print(sum(duration_extreme))
+df["outlier_amount"] = rule_amount | extreme_amount
+df["outlier_duration"] = rule2.rule2 | extreme_duration
+df["outlier_all"] = rule_amount | extreme_amount | rule2.rule2 | extreme_duration
 
-# print(confusion_matrix(rule_amount, amount_extreme))
-# print(confusion_matrix(rule2, duration_extreme))
+df["rule"] = rule_amount | rule2.rule2
+df["extreme"] = extreme_amount | extreme_duration
 
-# print(sum(df.be_amount_extreme), sum(df.be_duration_extreme))
-# print(sum(df.pa_amount_extreme), sum(df.pa_duration_extreme))
+(df.groupby("id_pa").outlier_amount.sum() != 0).sum() / n_pa
+(df.groupby("id_be").outlier_amount.sum() != 0).sum() / n_be
 
+(df.groupby("id_pa").outlier_duration.sum() != 0).sum() / n_pa
+(df.groupby("id_be").outlier_duration.sum() != 0).sum() / n_be
 
-print(sum(aperta.rule1 | aperta.rule3))
-print(sum(aperta.be_amount_extreme | aperta.pa_amount_extreme))
-print(sum(aperta.rule2))
-print(sum(aperta.be_duration_extreme | aperta.pa_duration_extreme))
-# print(sum(aperta.be_amount_extreme |
-#       aperta.pa_amount_extreme | aperta.rule1 | aperta.rule3))
-print(sum(aperta.rule2 | aperta.be_duration_extreme | aperta.pa_duration_extreme))
+(df.groupby("id_pa").outlier_all.sum() != 0).sum() / n_pa
+(df.groupby("id_be").outlier_all.sum() != 0).sum() / n_be
 
-rule_amount = rule_amount.replace({True: -1, False: 1}).rename("rule_amount")
-rule_duration = rule2.rule2.replace(
-    {True: -1, False: 1}).rename("rule_duration")
-amount_extreme = amount_extreme.replace(
-    {True: -1, False: 1}).rename("extreme_amount")
-duration_extreme = duration_extreme.replace(
-    {True: -1, False: 1}).rename("extreme_duration")
+aperta = df[df["id_award_procedure"] == 1]
 
-rule_amount.to_csv(input_path+"rule_amount.csv", index_label=False)
-rule_duration.to_csv(input_path+"rule_duration.csv", index_label=False)
-amount_extreme.to_csv(input_path+"extreme_amount.csv", index_label=False)
-duration_extreme.to_csv(input_path+"extreme_duration.csv", index_label=False)
+# rule_amount = rule_amount.replace({True: -1, False: 1}).rename("rule_amount")
+# rule_duration = rule2.rule2.replace(
+#     {True: -1, False: 1}).rename("rule_duration")
+# amount_extreme = amount_extreme.replace(
+#     {True: -1, False: 1}).rename("extreme_amount")
+# duration_extreme = duration_extreme.replace(
+#     {True: -1, False: 1}).rename("extreme_duration")
+
+# rule_amount.to_csv(input_path+"rule_amount.csv", index_label=False)
+# rule_duration.to_csv(input_path+"rule_duration.csv", index_label=False)
+# amount_extreme.to_csv(input_path+"extreme_amount.csv", index_label=False)
+# duration_extreme.to_csv(input_path+"extreme_duration.csv", index_label=False)

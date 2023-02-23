@@ -73,8 +73,7 @@ lines = plt.plot(model.n_components_range, bic)
 plt.legend(lines, ["spherical", "tied", "diag", "full"])
 plt.ylabel("Bayesian information criterion")
 plt.xlabel("number of components")
-plt.show()
-plt.savefig("..images/gmm_bic60")
+plt.savefig("../images/gmm_bic60", dpi=200)
 
 preds = model.test(X_test.values)
 

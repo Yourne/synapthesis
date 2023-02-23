@@ -44,7 +44,6 @@ df = df[features]
 # grouped = df.groupby("id_"+ent)[ent + "_boxcoxed_duration"]
 # pvalues = grouped.agg(shapiro_wilk_test)
 
-
 for party in ["be", "pa"]:
     for feature in ["amount", "duration"]:
         grouped = df.groupby("id_"+party)[feature]
@@ -89,5 +88,5 @@ for party in ["be", "pa"]:
 
         extreme_flag = extreme_flag.rename(
             party + "_" + feature + "_extreme")
-        extreme_flag.to_csv(
-            output_path + party + "_" + feature + "_extreme.csv", index_label="index")
+        # extreme_flag.to_csv(
+        #     output_path + party + "_" + feature + "_extreme.csv", index_label="index")
